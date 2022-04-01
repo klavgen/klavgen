@@ -1,0 +1,83 @@
+import cadquery as cq
+from .classes import RenderedKey, Key, RenderedKeyTemplates
+from .config import KeyConfig, CaseConfig
+from .renderer_switch_holder import render_switch_hole
+from .utils import grow_z, create_workplane, position
+
+
+def render_case_clearance(config: KeyConfig, case_config: CaseConfig):
+    return cq.Workplane("XY").box(
+        config.case_tile_width,
+        config.case_tile_depth,
+        case_config.clearance_height,
+        centered=grow_z,
+    )
+
+
+def render_keycap_clearance(config: KeyConfig, case_config: CaseConfig):
+    return cq.Workplane("XY").box(
+        config.keycap_width, config.keycap_depth, case_config.clearance_height, centered=grow_z
+    )
+
+
+def render_key_templates(case_config: CaseConfig, config: KeyConfig) -> RenderedKeyTemplates:
+    return RenderedKeyTemplates(
+        switch_hole=render_switch_hole(case_config, config.switch_holder_config),
+        case_clearance=render_case_clearance(config, case_config),
+        keycap_clearance=render_keycap_clearance(config, case_config),
+    )
+
+
+def render_key(
+    key: Key, templates: RenderedKeyTemplates, case_config: CaseConfig, config: KeyConfig
+) -> RenderedKey:
+    base_wp = create_workplane(key)
+
+    # Case column (full-height)
+    case_column = base_wp.workplane(offset=-key.z - case_config.case_base_height).box(
+        config.case_tile_width,
+        config.case_tile_depth,
+        key.z + case_config.case_base_height,
+        centered=grow_z,
+    )
+
+    # Case column clearance - bring keyboard to lowest level by cutting higher columns
+    case_clearance = position(templates.case_clearance, key)
+
+    # Switch support rim that overrides column clearance so there is something to support a switch
+    # that's within the case column clearance area
+    switch_rim = base_wp.workplane(offset=-key.z - case_config.case_base_height).box(
+        config.switch_rim_width,
+        config.switch_rim_depth,
+        key.z + case_config.case_base_height,
+        centered=grow_z,
+    )
+
+    # Vertical clearance for the keycap above the switch. Cuts into the switch rim of switches
+    # that are unrealistically close
+    keycap_clearance = position(templates.keycap_clearance, key)
+
+    # The whole for the switch assembly
+    switch_hole = templates.switch_hole
+    if not config.north_facing:
+        switch_hole = switch_hole.rotate((0, 0, 0), (0, 0, 1), 180)
+    switch_hole = position(switch_hole, key)
+
+    # Debug: keycap outline in the air
+    debug = None
+    if key.keycap_width and key.keycap_depth:
+        debug = (
+            base_wp.workplane(offset=5)
+            .rect(key.keycap_width, key.keycap_depth)
+            .rect(key.keycap_width - 1, key.keycap_depth - 1)
+            .extrude(1)
+        )
+
+    return RenderedKey(
+        case_column=case_column,
+        case_clearance=case_clearance,
+        switch_rim=switch_rim,
+        keycap_clearance=keycap_clearance,
+        switch_hole=switch_hole,
+        debug=debug,
+    )
