@@ -656,19 +656,19 @@ def get_y_at_x_intersection(obj, x, highest_y=True):
 
 
 def export_case_to_stl(result: RenderCaseResult):
-    cq.exporters.export(result.top, "keyboard top.stl")
-    cq.exporters.export(result.bottom, "keyboard bottom.stl")
+    cq.exporters.export(result.top, "keyboard_top.stl")
+    cq.exporters.export(result.bottom, "keyboard_bottom.stl")
     if result.palm_rests:
         if len(result.palm_rests) == 1:
-            cq.exporters.export(result.palm_rests[0], f"palm rest.stl")
+            cq.exporters.export(result.palm_rests[0], f"palm_rest.stl")
         else:
             for index, palm_rest in enumerate(result.palm_rests):
-                cq.exporters.export(palm_rest, f"palm rest {index}.stl")
+                cq.exporters.export(palm_rest, f"palm_rest_{index}.stl")
 
 
 def export_case_to_step(result: RenderCaseResult):
-    cq.exporters.export(result.top, "keyboard top.step")
-    cq.exporters.export(result.bottom, "keyboard bottom.step")
+    cq.exporters.export(result.top, "keyboard_top.step")
+    cq.exporters.export(result.bottom, "keyboard_bottom.step")
 
 
 def move_top(top):

@@ -143,8 +143,8 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
 
 
 def export_controller_holder_to_stl(controller_holder):
-    cq.exporters.export(controller_holder, "controller holder.stl")
+    cq.exporters.export(controller_holder, "controller_holder.stl")
 
 
 def export_controller_holder_to_step(controller_holder):
-    cq.exporters.export(controller_holder, "controller holder.step")
+    cq.exporters.export(controller_holder, "controller_holder.step")

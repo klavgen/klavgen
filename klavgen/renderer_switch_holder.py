@@ -690,8 +690,8 @@ def draw_top_lips(cf, case_config, wp_xz):
 
 
 def export_switch_holder_to_stl(result: RenderedSwitchHolder):
-    cq.exporters.export(result.switch_holder, "switch holder.stl")
+    cq.exporters.export(result.switch_holder, "switch_holder.stl")
 
 
 def export_switch_holder_to_step(result: RenderedSwitchHolder):
-    cq.exporters.export(result.switch_holder, "switch holder.step")
+    cq.exporters.export(result.switch_holder, "switch_holder.step")

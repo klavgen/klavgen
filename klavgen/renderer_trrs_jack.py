@@ -173,8 +173,8 @@ def render_trrs_jack_holder(config: TrrsJackConfig = TrrsJackConfig()):
 
 
 def export_trrs_jack_holder_to_stl(trrs_jack_holder):
-    cq.exporters.export(trrs_jack_holder, "trrs jack holder.stl")
+    cq.exporters.export(trrs_jack_holder, "trrs_jack_holder.stl")
 
 
 def export_trrs_jack_holder_to_step(trrs_jack_holder):
-    cq.exporters.export(trrs_jack_holder, "trrs jack holder.step")
+    cq.exporters.export(trrs_jack_holder, "trrs_jack_holder.step")
