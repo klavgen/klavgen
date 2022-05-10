@@ -27,6 +27,7 @@ def render_and_save_keyboard(
     screw_holes: Optional[List[ScrewHole]] = None,
     controller: Optional[Controller] = None,
     trrs_jack: Optional[TrrsJack] = None,
+    case_extras: Optional[List[Any]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
     palm_rests: Optional[List[PalmRest]] = None,
@@ -43,6 +44,7 @@ def render_and_save_keyboard(
     :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
     :param controller: A Controller object defining where the controller back center is. Optional.
     :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
+    :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
     :param palm_rests: A list of PalmRest objects that define palm rests (overlapping with keys is fine). Optional.
@@ -65,6 +67,7 @@ def render_and_save_keyboard(
         screw_holes=screw_holes,
         controller=controller,
         trrs_jack=trrs_jack,
+        case_extras=case_extras,
         patches=patches,
         cuts=cuts,
         palm_rests=palm_rests,
