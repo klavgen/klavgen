@@ -42,7 +42,7 @@ from .config import (
 
 # Methods
 from .keyboard import render_and_save_keyboard
-from .kle import generate_from_kle_json
+from .kle import generate_keys_from_kle_json
 from .renderer_case import (
     RenderCaseResult,
     render_case,

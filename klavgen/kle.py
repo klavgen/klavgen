@@ -1,42 +1,16 @@
 import json
 
 from .classes import Key
-from .renderer_case import render_case, RenderCaseResult
-from .config import Config
-from typing import List, Optional, Any
-
-from .classes import (
-    Key,
-    ScrewHole,
-    Patch,
-    Cut,
-    Text,
-    PalmRest,
-    Controller,
-    TrrsJack,
-    LocationRotation,
-)
+from typing import List
 
 
-def generate_from_kle_json(
-    json_file_path,
-    debug: bool = False,
-    r: RenderCaseResult = None,
-    config: Config = Config(),
-    screw_holes: Optional[List[ScrewHole]] = None,
-    controller: Optional[Controller] = None,
-    trrs_jack: Optional[TrrsJack] = None,
-    patches: Optional[List[Patch]] = None,
-    cuts: Optional[List[Cut]] = None,
-    palm_rests: Optional[List[PalmRest]] = None,
-    texts: Optional[List[Text]] = None,
-):
+def generate_keys_from_kle_json(
+    json_file_path: str, step_size: float = 19.05, debug: bool = False
+) -> List[Key]:
     with open(json_file_path) as fin:
         kle_keys = json.load(fin)
 
-    step = 19.05
-
-    half_step = step / 2
+    half_step_size = step_size / 2
 
     cur_x = 0
     cur_y = 0
@@ -45,8 +19,8 @@ def generate_from_kle_json(
     rotation = 0
 
     # Center of rotation is top left of top-left key
-    rx = -half_step
-    ry = half_step
+    rx = -half_step_size
+    ry = half_step_size
 
     keys = []
     i = 0
@@ -60,18 +34,18 @@ def generate_from_kle_json(
                 new_rxu = item.pop("rx", None)
 
                 if new_rxu is not None:
-                    cur_x = new_rxu * step
-                    rx = cur_x - half_step
+                    cur_x = new_rxu * step_size
+                    rx = cur_x - half_step_size
 
-                cur_x += item.pop("x", 0) * step
+                cur_x += item.pop("x", 0) * step_size
 
                 new_ryu = item.pop("ry", None)
 
                 if new_ryu is not None:
-                    cur_y = -new_ryu * step
-                    ry = cur_y + half_step
+                    cur_y = -new_ryu * step_size
+                    ry = cur_y + half_step_size
 
-                cur_y -= item.pop("y", 0) * step
+                cur_y -= item.pop("y", 0) * step_size
 
                 width = item.pop("w", width)
                 height = item.pop("h", height)
@@ -86,10 +60,9 @@ def generate_from_kle_json(
                 if item:
                     raise Exception(f"Items remaining in config dict: {item} for row {row}")
             else:
-                # print(item)
                 key_label = item.replace("\n", " ")
-                x = cur_x + (width - 1) * half_step
-                y = cur_y - (height - 1) * half_step
+                x = cur_x + (width - 1) * half_step_size
+                y = cur_y - (height - 1) * half_step_size
 
                 keys.append(Key(x=x, y=y, z=0, rotate=-rotation, rotate_around=(rx, ry)))
                 if debug:
@@ -97,24 +70,12 @@ def generate_from_kle_json(
                         f"Added {key_label} at x {x} (base {cur_x}), y {y} (base {cur_y}), rotation {-rotation} around rx {rx} ry {ry}"
                     )
 
-                cur_x += width * step
+                cur_x += width * step_size
                 width = 1
                 height = 1
 
         i += 1
-        cur_y -= step
-        cur_x = rx + half_step
+        cur_y -= step_size
+        cur_x = rx + half_step_size
 
-    return render_case(
-        keys=keys,
-        debug=debug,
-        result=r,
-        config=config,
-        texts=texts,
-        palm_rests=texts,
-        cuts=cuts,
-        patches=patches,
-        trrs_jack=trrs_jack,
-        controller=controller,
-        screw_holes=screw_holes,
-    )
+    return keys

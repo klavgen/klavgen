@@ -205,6 +205,8 @@ full list of members.
 This is a more complex "keyboard", with screw holes and a palm rest:
 
 ```
+from klavgen import *
+
 config = Config()
 
 keys = [
@@ -278,16 +280,17 @@ following:
 
 1. Go to the "Raw Data" tab and click "Download JSON" on the bottom right.
 
-1. Run code like the following to generate the keyboard:
+1. Run code like the following to generate the list of keys:
 
    ```
-   case_result = generate_from_kle_json("<path to downloaded json file>")
+   from klavgen import *
+   
+   keys = generate_keys_from_kle_json("<path to downloaded json file>") 
    ```
 
-The `generate_from_kle_json()` method also takes in a `config`, `debug`, and `result` parameters like `render_case()`.
-It returns a standard `RenderCaseResult` object.
+By default, keys are spaced 19.05mm apart. You can adjust this by passing the `step_size` parameter.
 
-To check the key positions this generated, look at `case_result.keys`.
+You can then use the standard `render_case()` or `render_and_save_keyboard()` methods to render the keyboard (see above).
 
 # Important constructs
 
