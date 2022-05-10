@@ -1,12 +1,19 @@
 from dataclasses import dataclass
 from typing import List, Optional, Any
 
-from .renderer_switch_holder import render_switch_holder, export_switch_holder_to_stl
+from .renderer_switch_holder import (
+    render_mx_switch_holder,
+    render_choc_switch_holder,
+    export_switch_holder_to_stl,
+)
 from .renderer_connector import render_connector, export_connector_to_stl
-from .renderer_controller import render_controller_holder, export_controller_holder_to_stl
+from .renderer_controller import (
+    render_controller_holder,
+    export_controller_holder_to_stl,
+)
 from .renderer_trrs_jack import render_trrs_jack_holder, export_trrs_jack_holder_to_stl
 from .renderer_case import RenderCaseResult, render_case, export_case_to_stl
-from .config import Config
+from .config import Config, SwitchType
 from .classes import Key, ScrewHole, Controller, TrrsJack, Patch, Cut, PalmRest, Text
 
 
@@ -44,9 +51,9 @@ def render_and_save_keyboard(
     :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
     :param controller: A Controller object defining where the controller back center is. Optional.
     :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
-    :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
+    :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
     :param palm_rests: A list of PalmRest objects that define palm rests (overlapping with keys is fine). Optional.
     :param texts: A list of Text objects with text to be drawn to either the top or palm rests. Optional.
     :param debug: A boolean defining whether to run in debug mode which skips the finicky shell step (that produces
@@ -67,9 +74,9 @@ def render_and_save_keyboard(
         screw_holes=screw_holes,
         controller=controller,
         trrs_jack=trrs_jack,
-        case_extras=case_extras,
         patches=patches,
         cuts=cuts,
+        case_extras=case_extras,
         palm_rests=palm_rests,
         texts=texts,
         debug=debug,
@@ -77,7 +84,11 @@ def render_and_save_keyboard(
         result=result,
         config=config,
     )
-    switch_holder_result = render_switch_holder(config)
+    switch_holder_result = (
+        render_mx_switch_holder(config)
+        if config.case_config.switch_type == SwitchType.MX
+        else render_choc_switch_holder(config)
+    )
 
     export_case_to_stl(case_result)
     export_switch_holder_to_stl(switch_holder_result)

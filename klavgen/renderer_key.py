@@ -1,11 +1,11 @@
 import cadquery as cq
 from .classes import RenderedKey, Key, RenderedKeyTemplates
-from .config import KeyConfig, CaseConfig
+from .config import MXKeyConfig, CaseConfig
 from .renderer_switch_holder import render_switch_hole
 from .utils import grow_z, create_workplane, position
 
 
-def render_case_clearance(config: KeyConfig, case_config: CaseConfig):
+def render_case_clearance(config: MXKeyConfig, case_config: CaseConfig):
     return cq.Workplane("XY").box(
         config.case_tile_width,
         config.case_tile_depth,
@@ -14,13 +14,16 @@ def render_case_clearance(config: KeyConfig, case_config: CaseConfig):
     )
 
 
-def render_keycap_clearance(config: KeyConfig, case_config: CaseConfig):
+def render_keycap_clearance(config: MXKeyConfig, case_config: CaseConfig):
     return cq.Workplane("XY").box(
-        config.keycap_width, config.keycap_depth, case_config.clearance_height, centered=grow_z
+        config.keycap_clearance_width,
+        config.keycap_clearance_depth,
+        case_config.clearance_height,
+        centered=grow_z,
     )
 
 
-def render_key_templates(case_config: CaseConfig, config: KeyConfig) -> RenderedKeyTemplates:
+def render_key_templates(case_config: CaseConfig, config: MXKeyConfig) -> RenderedKeyTemplates:
     return RenderedKeyTemplates(
         switch_hole=render_switch_hole(case_config, config.switch_holder_config),
         case_clearance=render_case_clearance(config, case_config),
@@ -29,7 +32,10 @@ def render_key_templates(case_config: CaseConfig, config: KeyConfig) -> Rendered
 
 
 def render_key(
-    key: Key, templates: RenderedKeyTemplates, case_config: CaseConfig, config: KeyConfig
+    key: Key,
+    templates: RenderedKeyTemplates,
+    case_config: CaseConfig,
+    config: MXKeyConfig,
 ) -> RenderedKey:
     base_wp = create_workplane(key)
 
