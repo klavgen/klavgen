@@ -17,10 +17,11 @@ from .classes import (
     LocationRotation,
 )
 
+
 def generate_from_kle_json(
-    json_file_path, 
-    debug: bool = False, 
-    r: RenderCaseResult = None, 
+    json_file_path,
+    debug: bool = False,
+    r: RenderCaseResult = None,
     config: Config = Config(),
     screw_holes: Optional[List[ScrewHole]] = None,
     controller: Optional[Controller] = None,
@@ -104,4 +105,16 @@ def generate_from_kle_json(
         cur_y -= step
         cur_x = rx + half_step
 
-    return render_case(keys=keys, debug=debug, result=r, config=config, texts=texts, palm_rests=texts, cuts=cuts, patches=patches, trrs_jack=trrs_jack, controller=controller, screw_holes=screw_holes)
+    return render_case(
+        keys=keys,
+        debug=debug,
+        result=r,
+        config=config,
+        texts=texts,
+        palm_rests=texts,
+        cuts=cuts,
+        patches=patches,
+        trrs_jack=trrs_jack,
+        controller=controller,
+        screw_holes=screw_holes,
+    )
