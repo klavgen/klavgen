@@ -334,7 +334,7 @@ This object contains the individual steps when constructing the case. They key o
 - `case_result.standard_components` is a rendering of all holders (switch, controller, TRRS jack) and palm rest
   connectors (see above).
 
-Additionally, there are many intermediate objects are useful for troubleshooting and auditing when something is not
+Additionally, there are many intermediate objects that are useful for troubleshooting and auditing when something is not
 going right.
 
 ## The `RenderKeyboardResult` object returned from `render_and_save_keyboard()`
