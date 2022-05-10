@@ -3,10 +3,32 @@ import json
 from .classes import Key
 from .renderer_case import render_case, RenderCaseResult
 from .config import Config
+from typing import List, Optional, Any
 
+from .classes import (
+    Key,
+    ScrewHole,
+    Patch,
+    Cut,
+    Text,
+    PalmRest,
+    Controller,
+    TrrsJack,
+    LocationRotation,
+)
 
 def generate_from_kle_json(
-    json_file_path, debug: bool = False, r: RenderCaseResult = None, config: Config = Config()
+    json_file_path, 
+    debug: bool = False, 
+    r: RenderCaseResult = None, 
+    config: Config = Config(),
+    screw_holes: Optional[List[ScrewHole]] = None,
+    controller: Optional[Controller] = None,
+    trrs_jack: Optional[TrrsJack] = None,
+    patches: Optional[List[Patch]] = None,
+    cuts: Optional[List[Cut]] = None,
+    palm_rests: Optional[List[PalmRest]] = None,
+    texts: Optional[List[Text]] = None,
 ):
     with open(json_file_path) as fin:
         kle_keys = json.load(fin)
@@ -82,4 +104,4 @@ def generate_from_kle_json(
         cur_y -= step
         cur_x = rx + half_step
 
-    return render_case(keys=keys, debug=debug, result=r, config=config)
+    return render_case(keys=keys, debug=debug, result=r, config=config, texts=texts, palm_rests=texts, cuts=cuts, patches=patches, trrs_jack=trrs_jack, controller=controller, screw_holes=screw_holes)
