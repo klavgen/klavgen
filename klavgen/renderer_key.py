@@ -64,14 +64,14 @@ def render_key(
     switch_hole = position(switch_hole, key)
 
     # Debug: keycap outline in the air
-    debug = None
-    if key.keycap_width and key.keycap_depth:
-        debug = (
-            base_wp.workplane(offset=5)
-            .rect(key.keycap_width, key.keycap_depth)
-            .rect(key.keycap_width - 1, key.keycap_depth - 1)
-            .extrude(1)
-        )
+    keycap_width = key.keycap_width or config.keycap_width
+    keycap_depth = key.keycap_depth or config.keycap_depth
+    debug = (
+        base_wp.workplane(offset=5)
+        .rect(keycap_width, keycap_depth)
+        .rect(keycap_width - 1, keycap_depth - 1)
+        .extrude(1)
+    )
 
     return RenderedKey(
         case_column=case_column,

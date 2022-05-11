@@ -1,3 +1,5 @@
+import cadquery as cq
+
 from klavgen import *
 
 config = Config(case_config=CaseConfig(side_fillet=1, palm_rests_top_fillet=2))
@@ -20,6 +22,16 @@ screw_holes = [  # Clockwise from top left
     ScrewHole(x=78.5, y=9.5),
     ScrewHole(x=30.5, y=-15),
     ScrewHole(x=-11.5, y=-15),
+]
+
+case_extras = [
+    (
+        cq.Workplane("XY")
+        .workplane(offset=-config.case_config.case_base_height)
+        .center(46, -15)
+        .circle(5)
+        .extrude(config.case_config.case_base_height)
+    )
 ]
 
 patches = [
@@ -66,6 +78,7 @@ keyboard_result = render_and_save_keyboard(
     screw_holes=screw_holes,
     controller=controller,
     trrs_jack=trrs_jack,
+    case_extras=case_extras,
     patches=patches,
     cuts=cuts,
     palm_rests=palm_rests,

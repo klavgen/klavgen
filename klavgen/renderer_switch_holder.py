@@ -453,7 +453,7 @@ def render_switch_holder(
 
     # Diode wire front triangular cutout
 
-    diode_wire_y_cross_section_depth = math.sqrt(2 * cf.diode_wire_diameter**2)
+    diode_wire_y_cross_section_depth = math.sqrt(2 * cf.diode_wire_diameter ** 2)
 
     # Move 0.1 so 45% degree lines don't overlap exactly
     diode_wire_holder_left_end_front_intersection_y = (

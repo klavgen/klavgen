@@ -38,8 +38,8 @@ See the [`example_stls`](example_stls) directory for example STL outputs. These 
 [`example.py`](example.py), see more about that below.
 
 | Component                                                                                                                                                                                   | STL file                                                      | Preview                                                                                                    |
-|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| **Bottom**                                                                                                                                                                                  | [`keyboard_bottom`](example_stls/keyboard_bottom.stl)         | <p align="center"><img src="img/components/bottom.png" alt="Bottom" width="300"/></p>                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |---------------------------------------------------------------| ---------------------------------------------------------------------------------------------------------- |
+| **Bottom**                                                                                                                                                                                  | [`keyboard_bottom.stl`](example_stls/keyboard_bottom.stl)     | <p align="center"><img src="img/components/bottom.png" alt="Bottom" width="300"/></p>                      |
 | **Top plate**: flat with simple holes so that it can be made with a laser cutter or a CNC machine                                                                                           | [`keyboard_top.stl`](example_stls/keyboard_top.stl)           | <p align="center"><img src="img/components/top.png" alt="Top" width="300"/></p>                            |
 | **Palm rest**: attaches to the bottom via connectors (can also be fused with the bottom, see below)                                                                                         | [`palm_rest.stl`](example_stls/palm_rest.stl)                 | <p align="center"><img src="img/components/palm_rest.png" alt="Palm rest back" width="300"/></p>           |
 | **Switch holder**: Holds the Kailh hotswap socket and allows you to solder the diode, column and row wires in-place. These should be printed in ABS since the soldering iron will be close. | [`switch_holder.stl`](example_stls/switch_holder.stl)         | <p align="center"><img src="img/components/switch_holder.png" alt="Switch holder" width="200"/></p>        |
@@ -118,8 +118,8 @@ need to import the `klavgen` package (which is in a sub-dir):
 
 CadQuery is very finicky when it comes to filleting (the `fillet()` command), and sometimes when it comes to shelling
 (the `shell()` command). Klavgen tries to provide helpful error messages when CadQuery fails, please follow them. In
-general, it is highly recommended to always use a `Patch` object to define the outline of your case to ensure there are
-no small features or holes that can trip filleting or shelling.
+general, it is highly recommended to always provide the `case_extras` parameter or use a `Patch` object to define the
+outline of your case to ensure there are no small features or holes that can trip filleting or shelling.
 
 If rendering fails in a shell, you should try `render_case()` with `debug=True`, which skips the shell step.
 
@@ -146,7 +146,7 @@ Run the following code to generate a single-key keyboard:
 from klavgen import *
 
 keys = [
-    Key(x=0, y=0, keycap_width=18, keycap_depth=18),
+    Key(x=0, y=0),
 ]
 
 case_result = render_case(keys=keys)
@@ -174,6 +174,8 @@ Here, we'll only focus on these 3 keys part in the `result` object:
 </p>
 
 - `case_result.debug` shows key and holder outlines, helping you debug designs. This part should not be saved or used.
+  By default, the outlines use the keycap width and depth from the configuration, but you can also pass in
+  `keycap_width` and `keycap_depth` parameters to `Key()` to adjust these per key.
 
 Rendering all 3 shows you the bottom, top and the debug outline in the air
 ((`show(case_result.top, case_result.bottom, case_result.debug)`):
@@ -205,6 +207,8 @@ full list of members.
 This is a more complex "keyboard", with screw holes and a palm rest:
 
 ```
+from klavgen import *
+
 config = Config()
 
 keys = [
@@ -278,16 +282,18 @@ following:
 
 1. Go to the "Raw Data" tab and click "Download JSON" on the bottom right.
 
-1. Run code like the following to generate the keyboard:
+1. Run code like the following to generate the list of keys:
 
    ```
-   case_result = generate_from_kle_json("<path to downloaded json file>")
+   from klavgen import *
+
+   keys = generate_keys_from_kle_json("<path to downloaded json file>") 
    ```
 
-The `generate_from_kle_json()` method also takes in a `config`, `debug`, and `result` parameters like `render_case()`.
-It returns a standard `RenderCaseResult` object.
+By default, keys are spaced 19.05mm apart. You can adjust this by passing the `step_size` parameter.
 
-To check the key positions this generated, look at `case_result.keys`.
+You can then use the standard `render_case()` or `render_and_save_keyboard()` methods to render the keyboard (see
+above).
 
 # Important constructs
 
@@ -302,8 +308,8 @@ To check the key positions this generated, look at `case_result.keys`.
 - `ScrewHoleConfig.screw_insert_hole_width` sets the size of the hole for screws and defaults to a value suitable for
   melting inserts. If you don't use inserts, you should lower the value.
 - `KeyConfig.case_tile_margin`, `ControllerConfig.case_tile_margin` and `TrrsJackConfig.case_tile_margin` is the size of
-  the case generated around keys, controller holders, and TRRS jack holders. If you use a `Patch` to define your
-  outlines, you can freely lower these.
+  the case generated around keys, controller holders, and TRRS jack holders. If you use `case_extras` or a `Patch`
+  object to define your outlines, you can freely lower these.
 
 ## The `render_standard_components` parameter
 
@@ -328,7 +334,7 @@ This object contains the individual steps when constructing the case. They key o
 - `case_result.standard_components` is a rendering of all holders (switch, controller, TRRS jack) and palm rest
   connectors (see above).
 
-Additionally, there are many intermediate objects are useful for troubleshooting and auditing when something is not
+Additionally, there are many intermediate objects that are useful for troubleshooting and auditing when something is not
 going right.
 
 ## The `RenderKeyboardResult` object returned from `render_and_save_keyboard()`
