@@ -265,7 +265,7 @@ The output `switch_holder.stl` file now looks like this:
 ## 5. Generate a keyboard with all of Klavgen's features
 
 Let's build a dummy keyboard using all of Klavgen's features
-([`example_4__all_features.py`](%60example_5__all_features.py%60)):
+([`example_5__all_features.py`](example_5__all_features.py)):
 
 ```
 include({{example_5__all_features.py}})dnl
