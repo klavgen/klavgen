@@ -59,6 +59,7 @@ from .config import (
 # Constants
 from .constants import (
     MX_KEYCAP_1U_WIDTH,
+    MX_KEYCAP_1_5U_WIDTH,
     MX_KEYCAP_1U_DEPTH,
     MX_KEY_X_SPACING,
     MX_KEY_Y_SPACING,
