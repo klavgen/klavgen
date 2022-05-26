@@ -73,11 +73,28 @@ def render_key(
         .extrude(1)
     )
 
+    if config.amoeba_royale:
+        amoeba_royale_post= (base_wp.workplane(offset=-case_config.case_thickness)
+            .center(9.5,1.16)
+            .circle(config.amoeba_plot_diameter)
+            .extrude(-config.amoeba_plot_height)
+            .hole(config.amoeba_hole_diameter)
+        )
+        
+        amoeba_royale_post= amoeba_royale_post.union(
+            base_wp.workplane(offset=-case_config.case_thickness)
+            .center(-9.5,1.16)
+            .circle(config.amoeba_plot_diameter)
+            .extrude(-config.amoeba_plot_height)
+            .hole(config.amoeba_hole_diameter)
+        )
+    
     return RenderedKey(
         case_column=case_column,
         case_clearance=case_clearance,
         switch_rim=switch_rim,
         keycap_clearance=keycap_clearance,
         switch_hole=switch_hole,
+        amoeba_royale_post=amoeba_royale_post,
         debug=debug,
     )

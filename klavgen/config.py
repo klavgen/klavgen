@@ -323,6 +323,12 @@ class KeyConfig:
     switch_rim_width: float = 19
     switch_rim_depth: float = 19
 
+    # Amoeba royale screw post
+    amoeba_royale: bool = False
+    amoeba_plot_height: float = 2.2
+    amoeba_hole_diameter: float = 1.8
+    amoeba_plot_diameter: float = 2.5
+    
     def __post_init__(self):
         if self.case_tile_margin_add_back_tolerance:
             self.case_tile_margin += self.switch_holder_config.switch_hole_tolerance / 2

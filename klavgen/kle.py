@@ -57,8 +57,8 @@ def generate_keys_from_kle_json(
                 # Ignore homing
                 item.pop("n", None)
 
-                if item:
-                    raise Exception(f"Items remaining in config dict: {item} for row {row}")
+                '''if item:
+                    raise Exception(f"Items remaining in config dict: {item} for row {row}")'''
             else:
                 key_label = item.replace("\n", " ")
                 x = cur_x + (width - 1) * half_step_size
