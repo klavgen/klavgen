@@ -1,15 +1,25 @@
 from dataclasses import dataclass
 from typing import Optional
+from enum import Enum
+
+
+class SwitchType(Enum):
+    MX = 0
+    CHOC = 1
 
 
 @dataclass
 class CaseConfig:
+    switch_type: SwitchType = SwitchType.MX
+
     case_thickness: float = 2
 
     # Total height, including top and bottom thickness
-    # 11 = 5.2 switch holder (incl top thickness of 2) + 1 socket bumps + 1.8 socket + 1 socket base + 2 bottom
-    # thickness
-    case_base_height: float = 11
+    # MX: 11 = 5 switch holder (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
+    #   2 bottom thickness
+    # Choc: 8.2 = 2.2 switch holder (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket +
+    #   1 socket base + 2 bottom thickness
+    case_base_height: float = 8.2  # 11
 
     # Global clearance height
     clearance_height: float = 100
@@ -41,7 +51,27 @@ class ScrewHoleConfig:
 
 
 @dataclass
-class KailhSocketConfig:
+class SocketConfig:
+    socket_height: float
+    socket_total_depth: float
+
+    socket_bump_1_x_from_center: float
+    socket_bump_1_y_from_center: float
+    socket_bump_2_x_from_center: float
+    socket_bump_2_y_from_center: float
+
+    socket_locking_lip_start_x: float
+    socket_locking_lip_start_y: float
+    socket_locking_lip_width: float
+
+    socket_left_end_x: float
+    socket_right_end_x: float
+
+    solder_pin_width: float
+
+
+@dataclass
+class KailhMXSocketConfig(SocketConfig):
     # Kailh socket heights
     socket_height: float = 1.8
     socket_bump_height: float = 1
@@ -102,113 +132,155 @@ class KailhSocketConfig:
     socket_bump_2_y_from_center: float = socket_bump_2_y + socket_center_y_offset
 
     # Final bounding box
-    socket_left_end_x = (
+    socket_left_end_x: float = (
         socket_center_x_offset  # start X is just the offset, since we start sketching from X = 0
     )
-    socket_right_end_x = socket_total_width + socket_center_x_offset
+    socket_right_end_x: float = socket_total_width + socket_center_x_offset
 
     socket_front_end_y: float = (
         socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
     )
 
-    socket_back_left_end_y: float = socket_thin_part_depth + socket_center_y_offset
     socket_back_right_end_y: float = socket_total_depth + socket_center_y_offset
+
+    socket_locking_lip_start_y: float = socket_thin_part_depth + socket_center_y_offset
+    socket_locking_lip_start_x: float = socket_left_end_x
+    socket_locking_lip_width: float = back_flat_width
 
 
 @dataclass
-class SwitchHolderConfig:
+class KailhChocSocketConfig(SocketConfig):
+    back_left_width: float = 5
+    front_right_width: float = 4.75
+    left_depth: float = 4.65
+    right_depth: float = 4.65
+    socket_total_depth: float = 6.85
+    total_width: float = 9.55
+
+    socket_height: float = 1.8
+
+    pins_inset_depth: float = 1
+    solder_pin_width: float = 1.9
+    pin_top_clearance_height: float = 0.4
+
+    bump_x_distance: float = 5
+    bump_y_distance: float = -2.2
+
+    socket_bump_radius: float = 1.6
+    socket_bump_height: float = 1.25
+
+    socket_bump_1_x: float = 2.4
+
+    front_right_corner_protrusion_width: float = 0.5
+
+    left_y_offset: float = socket_total_depth - left_depth
+    right_y_space_behind: float = socket_total_depth - right_depth
+
+    socket_bump_1_y: float = left_y_offset + left_depth / 2
+
+    socket_bump_2_x: float = socket_bump_1_x + bump_x_distance
+    socket_bump_2_y: float = socket_bump_1_y + bump_y_distance
+
+    # Offsets from center
+    socket_center_x_offset: float = -socket_bump_1_x - 5
+    socket_center_y_offset: float = -socket_bump_1_y - 3.8
+
+    # Final switch pin bump coordinates
+    socket_bump_1_x_from_center: float = socket_bump_1_x + socket_center_x_offset
+    socket_bump_1_y_from_center: float = socket_bump_1_y + socket_center_y_offset
+    socket_bump_2_x_from_center: float = socket_bump_2_x + socket_center_x_offset
+    socket_bump_2_y_from_center: float = socket_bump_2_y + socket_center_y_offset
+
+    socket_left_end_x: float = socket_center_x_offset
+    socket_right_end_x: float = total_width + socket_center_x_offset
+
+    socket_front_end_y: float = (
+        socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
+    )
+
+    socket_locking_lip_start_y: float = right_depth + socket_center_y_offset
+    socket_locking_lip_start_x: float = back_left_width + left_y_offset + socket_center_x_offset
+    socket_locking_lip_width: float = total_width - back_left_width - left_y_offset
+
+
+@dataclass
+class MXSwitchHolderConfig:
     case_config: CaseConfig = CaseConfig()
-    kailh_socket_config: KailhSocketConfig = KailhSocketConfig()
+    kailh_socket_config: KailhMXSocketConfig = KailhMXSocketConfig()
 
     # Switch hole
+    switch_width: float = 14
+    switch_depth: float = 14
     switch_hole_tolerance: float = 0.05
 
-    switch_hole_width: float = 14 - switch_hole_tolerance
-    switch_hole_depth: float = 14 - switch_hole_tolerance
+    switch_bottom_height: float = 5  # 3.2
+    switch_bottom_buffer_height: float = 0.2
 
-    # Front hole
-    plate_front_hole_depth: float = 1.1
-    plate_front_hole_width: float = 6
-
-    # Holder
-
-    switch_bottom_height: float = 3.2
-
+    # Plate holes for holder lips
     holder_plate_gap: float = 0.1
 
+    plate_side_hole_width: float = 1.8
+    plate_side_hole_depth: float = 7
+
+    plate_front_hole_width: float = 6
+    plate_front_hole_depth: float = 1.1
+
+    # Side wall thicknesses (front is calculated)
     holder_side_bottom_wall_width: float = 2.3
-    holder_front_back_wall_depth: float = plate_front_hole_depth - holder_plate_gap
-
-    socket_base_height: float = 1
-
-    holder_width: float = switch_hole_width + 2 * holder_side_bottom_wall_width
-    holder_depth: float = switch_hole_depth + 2 * holder_front_back_wall_depth
-    holder_bottom_height: float = (
-        socket_base_height
-        + kailh_socket_config.socket_height
-        + kailh_socket_config.socket_bump_height
-    )
-    holder_height: float = holder_bottom_height + switch_bottom_height
-
-    holder_height_to_pin_top: float = (
-        socket_base_height
-        + kailh_socket_config.socket_height
-        + kailh_socket_config.pin_top_clearance_height
-    )
-
-    switch_hole_min_height: float = holder_height + case_config.case_thickness
-
-    # Socket lips to prevent it from sliding out
-    socket_lip_width: float = 0.4
-    socket_lip_height: float = 0.2
 
     # Y cutoffs
-    cutoff_y_behind_socket: float = 0.5
-
-    cutoff_front_base_y: float = kailh_socket_config.socket_back_left_end_y + cutoff_y_behind_socket
-
+    cutoff_base_y_behind_socket_lip: float = 0.2
+    # cutoff_base_y_buffer: float = 0.4
+    # cutoff_base_y_depth: float = 6
     cutoff_y: float = 8.2
 
-    cutoff_back_bottom_y: float = 8.2
-
-    # Plate holes
-
-    # Side holes
-    plate_side_hole_width: float = 1.8
-    plate_right_side_hole_depth: float = 7
-    plate_left_side_hole_depth: float = 7
-
-    plate_front_hole_start_y: float = -switch_hole_depth / 2 - plate_front_hole_depth
-
-    # Holder top walls
-    holder_side_top_wall_width: float = plate_side_hole_width - holder_plate_gap
-    holder_side_top_wall_x_offset: float = (
-        holder_side_bottom_wall_width - holder_side_top_wall_width
-    )
-
-    # Switch plastic pin holes
-    switch_hole_1_x: float = -5
-    switch_hole_1_y: float = 0
-    switch_hole_1_radius: float = 1.1  # 0.875
-
-    switch_hole_2_x: float = 0
-    switch_hole_2_y: float = 0
-    switch_hole_2_radius: float = 2.2  # 2.1
-
-    switch_hole_3_x: float = 5
-    switch_hole_3_y: float = 0
-    switch_hole_3_radius: float = 1.1  # 0.875
+    # Socket supports
+    socket_base_height: float = 1
 
     # Front cutout to ease removal
+    has_front_cutout_for_removal: bool = True
     front_removal_cutout_width: float = 3
 
-    # Bottom cutout for wires and diode
-    base_cutout_width_within_socket_body: float = 1.7
-
-    # Switch metal pins extension holes in base
+    # Holes for switch metal pins to extend in base
     switch_metal_pin_base_hole_radius: float = 1
 
-    # Top brackets/lips
+    # Front wire supports
+    front_wire_supports_depth: float = 1.2
+
+    # Side angled cutouts
+    bottom_angled_cutout_left_end_top_y: float = 0.5
+    bottom_angled_cutout_left_socket_top_y: float = 0.5
+    bottom_angled_cutout_right_socket_top_y: float = 2.8
+    bottom_angled_cutout_right_end_top_y: float = 2.8
+
+    # Lip to prevent socket from sliding out
+    socket_lip_depth: float = 0.4
+    socket_lip_height: float = 0.2
+
+    # Reverse position of diode and col wire:
+    #   False = diode on left, col wire on right when looking from the front wall)
+    #   True = diode on right, col wire on left
+    reverse_diode_and_col_wire: bool = False
+
+    #
+    # Front wire holes
+    #
+
+    # Diode wire front hole
+    diode_wire_front_hole_distance_from_socket: float = 0.6
+    diode_wire_front_hole_width: float = 0.9
+
+    # Col wire front wrapping post (=hole in the front wall)
+    col_wire_front_hole_distance_from_socket: float = 0.075
+    col_wire_front_hole_narrow_width: float = 1
+    col_wire_front_hole_narrow_height: float = 1
+    col_wire_front_hole_wide_width: float = 1.5
+
+    #
+    # Top lips
+    #
+
+    # Top lips
     holder_lips_start_below_case_top: float = 0.2
     holder_lips_chamfer_top: float = 0.7
 
@@ -217,96 +289,249 @@ class SwitchHolderConfig:
     holder_side_lips_base_width: float = 1
     holder_side_lips_top_width: float = 0.6
 
-    holder_left_lips_depth: float = plate_left_side_hole_depth - holder_plate_gap
-    holder_right_lips_depth: float = plate_right_side_hole_depth - holder_plate_gap
+    # Top front lip
+    holder_front_lip_side_plate_gap: float = 0.2
+    holder_front_lip_height: float = 1.8
 
-    holder_side_lips_top_lip_height: float = (
-        holder_side_lips_width + holder_side_lips_base_width - holder_side_lips_top_width
-    )
+    #
+    # Base holes for switch plastic pins
+    #
 
-    # Top front bump
+    switch_center_pin_y: float = 0
+    switch_center_pin_radius: float = 2.2
 
-    holder_front_lock_bump_side_plate_gap: float = 0.2
-    holder_front_lock_bump_width = (
-        plate_front_hole_width - 2 * holder_front_lock_bump_side_plate_gap
-    )
-    holder_front_lock_bump_height = 1.8
+    switch_side_pin_distance: float = 5
+    switch_side_pin_y: float = 0
+    switch_side_pin_radius: float = 1.1
 
-    holder_total_height: float = (
-        holder_height
-        + case_config.case_thickness
-        - holder_lips_start_below_case_top
-        + holder_side_lips_width
-        + holder_side_lips_top_lip_height
-    )
+    #
+    # Back wrapping posts and col/row separator
+    #
 
-    # Side profiles
+    # Row wire back wrapping posts
+    has_row_wire_wrappers: bool = True
+    has_left_row_wire_wrapper: bool = True
 
-    left_profile_bottom_start_y = 3.7
-    right_profile_bottom_start_y = 6
+    back_wrappers_and_separator_depth: float = 1.6
 
-    front_wire_supports_depth = 1.2
+    row_wire_wrappers_offset_from_plate: float = 1.4
+    row_wire_wrappers_base_height: float = 1
+    row_wire_wrappers_tip_height: float = 2
+    row_wire_wrapper_extra_width: float = 0
 
-    # Row wire cutout
+    # Col and row wires separator
+    col_row_separator_z: float = 2
+    col_row_separator_height: float = 1
 
-    row_wire_cutout_depth = 1.6  # 1.2
+    # Col wire back wrapping post
+    col_wire_wrapper_back_head_height: float = 1
+    col_wire_wrapper_back_head_extra_depth: float = 0.6
 
-    # Diode & wire
+    col_wire_wrapper_back_neck_height: float = 1
+    col_wire_wrapper_neck_width: float = 1
+    col_wire_wrapper_neck_inner_margin: float = 0.85
+    col_wire_wrapper_neck_outer_margin: float = 0.85
 
-    diode_depth = 4
-    diode_diameter = 2.1
-    diode_wire_diameter = 0.55
+    col_wire_wrapper_back_neck_back_cutout_depth: float = 0.4
 
-    diode_center_from_left_end = 3.6
-    diode_center_y = 3.5
+    #
+    # Diode holder
+    #
 
-    # Diode back cutout
+    # Diode hole location
+    diode_center_x_from_side_end: float = 2.6
+    diode_center_y_in_front_of_back_wall: float = 3.1
+    diode_rotation: float = -45
 
-    diode_back_wall_depth = 1
-    diode_back_cutout_width = 6
+    # Diode size
+    diode_depth: float = 4
+    diode_diameter: float = 2.1
 
-    # Diode wire front support
+    # Diode hole lips
+    diode_bottom_lips_z_offset: float = 0.8
+    diode_bottom_lips_width: float = 0.32
+    diode_bottom_lips_height: float = 1
+    diode_top_lips_size: float = 0.65
 
-    diode_wire_front_support_x_gap = 1.5
-    diode_wire_front_support_cutout_z_offset = 1.6
-    diode_wire_front_support_cutout_height = 0.5
+    # Diode wire cutout
+    diode_wire_diameter: float = 0.55
 
     # Diode wire front triangular cutout
+    has_diode_wire_triangular_cutout: bool = True
+    diode_wire_triangular_cutout_width_depth: float = 1.5
 
-    diode_wire_front_triangular_cutout_edge = 1.5
+    # Diode back wall
+    has_diode_back_wall_cutout: bool = True
+    diode_back_wall_top_cut_half_width: bool = True
+    diode_back_wall_depth: float = 1
+    diode_back_wall_cutout_width: float = 6
 
-    # Diode lips
-
-    diode_bottom_lips_z_offset = 0.8
-    diode_bottom_lips_width = 0.32
-    diode_bottom_lips_height = 1
-    diode_top_lips_size = 0.65
-
-    # Col wire cutout
-
-    col_wire_cutout_width = 0.9
-    col_wire_cutout_height = 1.5
-    col_wire_lips_width = 0.15
-    col_wire_lips_height = 0.3
-
-    col_wire_cutout_offset_from_right_end = 0.8
-    col_wire_lips_offset_from_cutout_top = 0.6
-    col_wire_support_width_on_left = 1
-
-    # Vertical cut
-
-    vertical_cut_left_hole_start_y_offset = 0.001
-
+    #
     # Back side cuts
+    #
 
-    back_side_cut_start_behind_lips = 1
-    back_side_cut_left = 1
-    back_side_cut_right = 1
+    back_side_cut_start_behind_lips: float = 1
+    back_side_cut_left_width: float = 1
+    back_side_cut_right_width: float = 1
+
+    def __post_init__(self):
+        self.switch_hole_width: float = self.switch_width - self.switch_hole_tolerance
+        self.switch_hole_depth: float = self.switch_depth - self.switch_hole_tolerance
+
+        self.holder_front_wall_depth: float = self.plate_front_hole_depth - self.holder_plate_gap
+
+        self.holder_width: float = self.switch_hole_width + 2 * self.holder_side_bottom_wall_width
+        self.holder_depth: float = self.switch_hole_depth + 2 * self.holder_front_wall_depth
+
+        self.holder_bottom_height: float = (
+            self.socket_base_height
+            + self.kailh_socket_config.socket_height
+            + self.kailh_socket_config.socket_bump_height
+        )
+        self.holder_height: float = (
+            self.holder_bottom_height
+            + self.switch_bottom_buffer_height
+            + self.switch_bottom_height
+            - self.case_config.case_thickness
+        )
+
+        self.holder_height_to_socket_pin_top: float = (
+            self.socket_base_height
+            + self.kailh_socket_config.socket_height
+            + self.kailh_socket_config.pin_top_clearance_height
+        )
+
+        self.cutoff_y_before_back_wrappers_and_separator = (
+            self.cutoff_y - self.back_wrappers_and_separator_depth
+        )
+
+        self.switch_hole_min_height: float = self.holder_height + self.case_config.case_thickness
+
+        self.plate_front_hole_start_y: float = (
+            -self.switch_hole_depth / 2 - self.plate_front_hole_depth
+        )
+
+        self.cutoff_base_y: float = (
+            self.kailh_socket_config.socket_locking_lip_start_y
+            + self.socket_lip_depth
+            + self.cutoff_base_y_behind_socket_lip
+        )
+
+        # Holder top walls
+        self.holder_side_top_wall_width: float = self.plate_side_hole_width - self.holder_plate_gap
+        self.holder_side_top_wall_x_offset: float = (
+            self.holder_side_bottom_wall_width - self.holder_side_top_wall_width
+        )
+
+        self.holder_lips_depth: float = self.plate_side_hole_depth - self.holder_plate_gap
+
+        self.holder_side_lips_top_lip_height: float = (
+            self.holder_side_lips_width
+            + self.holder_side_lips_base_width
+            - self.holder_side_lips_top_width
+        )
+
+        self.holder_front_lock_bump_width = (
+            self.plate_front_hole_width - 2 * self.holder_front_lip_side_plate_gap
+        )
+
+        self.holder_total_height: float = (
+            self.holder_height
+            + self.case_config.case_thickness
+            - self.holder_lips_start_below_case_top
+            + self.holder_side_lips_width
+            + self.holder_side_lips_top_lip_height
+        )
+
+        self.col_wire_wrapper_head_width = (
+            self.col_wire_wrapper_neck_inner_margin
+            + self.col_wire_wrapper_neck_width
+            + self.col_wire_wrapper_neck_outer_margin
+        )
+
+        self.diode_center_y = (
+            self.cutoff_y_before_back_wrappers_and_separator
+            - self.diode_center_y_in_front_of_back_wall
+        )
 
 
 @dataclass
-class KeyConfig:
-    switch_holder_config: SwitchHolderConfig = SwitchHolderConfig()
+class ChocSwitchHolderConfig(MXSwitchHolderConfig):
+    kailh_socket_config: KailhChocSocketConfig = KailhChocSocketConfig()
+    switch_width: float = 13.8
+    switch_depth: float = 13.8
+    switch_bottom_height: float = 2.2
+
+    has_front_cutout_for_removal: bool = False
+    has_left_row_wire_wrapper: bool = False
+    reverse_diode_and_col_wire: bool = True
+
+    row_wire_wrappers_offset_from_plate: float = 1.4
+
+    cutoff_y: float = 7.8
+    plate_front_hole_depth: float = 1.9
+
+    # Side angled cutouts
+    bottom_angled_cutout_left_end_top_y: float = 0.5
+    bottom_angled_cutout_right_socket_top_y: float = 2.4
+    bottom_angled_cutout_right_end_top_y: float = 2.4
+
+    #
+    # Base holes for switch plastic pins
+    #
+
+    switch_center_pin_y: float = 0
+    switch_center_pin_radius: float = 2.7
+
+    switch_side_pin_distance: float = 5.5
+    switch_side_pin_y: float = 0
+    switch_side_pin_radius: float = 1.1
+
+    #
+    # Front wire holes
+    #
+
+    # Diode wire front hole
+    diode_wire_front_hole_distance_from_socket: float = 1
+
+    # Col wire front wrapping post (=hole in the front wall)
+    col_wire_front_hole_narrow_width: float = 2
+    col_wire_front_hole_wide_width: float = 2
+
+    #
+    # Back wrapping posts and col/row separator
+    #
+
+    # Row wire back wrapping posts
+    row_wire_wrapper_extra_width: float = 0.8
+
+    #
+    # Diode holder
+    #
+
+    # Diode hole location
+    diode_center_x_from_side_end: float = 4
+    diode_center_y_in_front_of_back_wall: float = 2.4
+    diode_rotation: float = 0
+
+    # Diode wire front triangular cutout
+    has_diode_wire_triangular_cutout: bool = False
+
+    # Diode back wall
+    has_diode_back_wall_cutout: bool = False
+    diode_back_wall_top_cut_half_width: bool = False
+
+    #
+    # Back side cuts
+    #
+
+    back_side_cut_left_width: float = 0.5
+    back_side_cut_right_width: float = 1.5
+
+
+@dataclass
+class MXKeyConfig:
+    switch_holder_config: MXSwitchHolderConfig = MXSwitchHolderConfig()
 
     # Orientation
     north_facing: float = False
@@ -316,8 +541,9 @@ class KeyConfig:
     case_tile_margin: float = 8
 
     # Keycap
-    keycap_width: float = 19
-    keycap_depth: float = 19
+    keycap_width: float = 18
+    keycap_depth: float = 18
+    clearance_margin: float = 1
 
     # Need enough space for the socket holder lips
     switch_rim_width: float = 19
@@ -339,6 +565,15 @@ class KeyConfig:
         self.case_tile_depth: float = (
             self.switch_holder_config.switch_hole_depth + self.case_tile_margin * 2
         )
+        self.keycap_clearance_width = self.keycap_width + self.clearance_margin
+        self.keycap_clearance_depth = self.keycap_depth + self.clearance_margin
+
+
+@dataclass
+class ChocKeyConfig(MXKeyConfig):
+    # Keycap
+    keycap_width: float = 17.5
+    keycap_depth: float = 16.5
 
 
 @dataclass
@@ -448,11 +683,22 @@ class Config:
     case_config: CaseConfig = CaseConfig()
 
     screw_hole_config: ScrewHoleConfig = ScrewHoleConfig()
-    kailh_socket_config: KailhSocketConfig = KailhSocketConfig()
+
+    kailh_mx_socket_config: KailhMXSocketConfig = KailhMXSocketConfig()
+    kailh_choc_socket_config: KailhChocSocketConfig = KailhChocSocketConfig()
+
     # TODO: fix overriding
-    switch_holder_config: SwitchHolderConfig = SwitchHolderConfig(
-        case_config=case_config, kailh_socket_config=kailh_socket_config
+    switch_holder_mx_config: MXSwitchHolderConfig = MXSwitchHolderConfig(
+        case_config=case_config, kailh_socket_config=kailh_mx_socket_config
     )
-    key_config: KeyConfig = KeyConfig(switch_holder_config=switch_holder_config)
+    switch_holder_choc_config: ChocSwitchHolderConfig = ChocSwitchHolderConfig(
+        case_config=case_config, kailh_socket_config=kailh_choc_socket_config
+    )
+
+    key_config: MXKeyConfig = (
+        MXKeyConfig(switch_holder_config=switch_holder_mx_config)
+        if case_config.switch_type == SwitchType.MX
+        else ChocKeyConfig(switch_holder_config=switch_holder_choc_config)
+    )
     controller_config: ControllerConfig = ControllerConfig()
     trrs_jack_config: TrrsJackConfig = TrrsJackConfig()

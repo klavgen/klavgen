@@ -24,7 +24,7 @@ def render_connector_cutout(case_config: CaseConfig):
     return connector_cutout
 
 
-def render_connector(case_config: CaseConfig):
+def render_connector(case_config: CaseConfig = CaseConfig()):
     wp = cq.Workplane("XY").tag("base")
 
     # TODO: assumes switch_plate_gap_to_palm_rest is 0.5

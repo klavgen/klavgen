@@ -35,7 +35,10 @@ def render_trrs_jack_holder(config: TrrsJackConfig = TrrsJackConfig()):
     # Cutouts
 
     front_hole = wp_mid_xy.box(
-        config.holder_hole_width, config.front_support_depth, config.holder_height, centered=grow_yz
+        config.holder_hole_width,
+        config.front_support_depth,
+        config.holder_height,
+        centered=grow_yz,
     )
 
     holder = holder.cut(front_hole)

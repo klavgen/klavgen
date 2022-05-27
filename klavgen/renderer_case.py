@@ -16,7 +16,7 @@ from .classes import (
     TrrsJack,
     LocationRotation,
 )
-from .config import Config
+from .config import Config, SwitchType
 
 from .renderer_cut import render_cut
 from .renderer_key import render_key, render_key_templates
@@ -29,7 +29,7 @@ from .renderer_connector import (
     render_connector_cutout,
     render_case_connector_support,
 )
-from .renderer_switch_holder import render_switch_holder
+from .renderer_switch_holder import render_mx_switch_holder, render_choc_switch_holder
 
 import importlib
 
@@ -37,8 +37,14 @@ from .utils import position, union_list
 
 importlib.reload(renderer_controller)
 importlib.reload(renderer_trrs_jack)
-from .renderer_controller import render_controller_case_cutout_and_support, render_controller_holder
-from .renderer_trrs_jack import render_trrs_jack_case_cutout_and_support, render_trrs_jack_holder
+from .renderer_controller import (
+    render_controller_case_cutout_and_support,
+    render_controller_holder,
+)
+from .renderer_trrs_jack import (
+    render_trrs_jack_case_cutout_and_support,
+    render_trrs_jack_holder,
+)
 
 
 @dataclass
@@ -46,9 +52,9 @@ class RenderCaseResult:
     keys: Optional[List[Key]] = (None,)
     switch_holes: Any = None
     screw_hole_rims: Any = None
-    case_extras: Any = None
     patches: Any = None
     cuts: Any = None
+    case_extras: Any = None
     controller_hole: Any = None
     controller_rail: Any = None
     trrs_jack_hole: Any = None
@@ -77,9 +83,9 @@ def render_case(
     screw_holes: Optional[List[ScrewHole]] = None,
     controller: Optional[Controller] = None,
     trrs_jack: Optional[TrrsJack] = None,
-    case_extras: Optional[List[Any]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
+    case_extras: Optional[List[Any]] = None,
     palm_rests: Optional[List[PalmRest]] = None,
     texts: Optional[List[Text]] = None,
     debug: bool = False,
@@ -90,14 +96,13 @@ def render_case(
     """
     The core method that renders the keyboard case.
 
-    :param case_extras:
     :param keys: A list of Key objects defining the key positions. Required.
     :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
     :param controller: A Controller object defining where the controller back center is. Optional.
     :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
-    :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
+    :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
     :param palm_rests: A list of PalmRest objects that define palm rests (overlapping with keys is fine). Optional.
     :param texts: A list of Text objects with text to be drawn to either the top or palm rests. Optional.
     :param debug: A boolean defining whether to run in debug mode which skips the finicky shell step (that produces
@@ -204,25 +209,25 @@ def render_case(
             else:
                 screw_hole_debug = rendered_screw_hole.debug
 
-    if case_extras:
-        result.case_extras = union_list(case_extras)
-
     if rendered_patches:
         result.patches = union_list(rendered_patches)
 
     if rendered_cuts:
         result.cuts = union_list(rendered_cuts)
 
+    if case_extras:
+        result.case_extras = union_list(case_extras)
+
     # Create case
 
     case = case_columns.clean()
-    if result.case_extras:
-        case = case.union(result.case_extras)
     if result.patches:
         case = case.union(result.patches)
-    case = case.cut(case_clearances)
     if result.cuts:
         case = case.cut(result.cuts)
+    if result.case_extras:
+        case = case.union(result.case_extras)
+    case = case.cut(case_clearances)
     case = case.union(switch_rims).clean()
     if result.screw_hole_rims:
         case = case.union(result.screw_hole_rims)
@@ -432,7 +437,9 @@ def render_case(
                             body_link_location_y,
                             body_link_angle,
                         ) = get_y_and_angle_at_x_intersection(
-                            result.case_after_fillet, connector_location_x, highest_y=False
+                            result.case_after_fillet,
+                            connector_location_x,
+                            highest_y=False,
                         )
 
                         # Mid-point Y for connector
@@ -582,13 +589,18 @@ def render_case(
 
     if render_standard_components:
         # Add switch holders
-        switch_holder_template = render_switch_holder(
+        switch_holder_render_func = (
+            render_mx_switch_holder
+            if case_config.switch_type == SwitchType.MX
+            else render_choc_switch_holder
+        )
+        switch_holder_template = switch_holder_render_func(
             config, orient_for_printing=False
         ).switch_holder
         if not key_config.north_facing:
             switch_holder_template = switch_holder_template.rotate((0, 0, 0), (0, 0, 1), 180)
 
-        switch_holder_config = config.switch_holder_config
+        switch_holder_config = config.switch_holder_mx_config
 
         for key in keys:
             switch_holder_lr = LocationRotation(

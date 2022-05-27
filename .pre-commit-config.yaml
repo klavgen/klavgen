@@ -1,0 +1,23 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+    - id: check-yaml
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+- repo: https://github.com/psf/black
+  rev: 22.3.0
+  hooks:
+    - id: black
+- repo: https://github.com/executablebooks/mdformat
+  rev: 0.7.14
+  hooks:
+    - id: mdformat
+      additional_dependencies: ["mdformat-gfm", "mdformat-tables"]
+- repo: local
+  hooks:
+    - id: generate-readme
+      name: Generate README.md with m4
+      entry: bin/generate-readme.sh
+      language: script
+      pass_filenames: false

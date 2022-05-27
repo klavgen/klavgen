@@ -53,7 +53,8 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
     base_hole_depth = pcb_depth - base_front_depth - base_back_depth
 
     base_hole_left = wp.center(
-        -base_center_width / 2 - base_hole_width, config.front_support_depth + base_front_depth
+        -base_center_width / 2 - base_hole_width,
+        config.front_support_depth + base_front_depth,
     ).box(base_hole_width, base_hole_depth, base_height, centered=False)
 
     base_hole_right = wp.center(
@@ -73,7 +74,10 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
 
     front_pcb_lips = (
         wp_yz.workplane(offset=-pcb_width / 2 + pcb_lips_front_side_margin)
-        .center(config.front_support_depth, base_height + pcb_lips_start_height_from_pcb_bottom)
+        .center(
+            config.front_support_depth,
+            base_height + pcb_lips_start_height_from_pcb_bottom,
+        )
         .lineTo(pcb_lips_depth, pcb_lips_depth)
         .lineTo(pcb_lips_depth, pcb_lips_height - pcb_lips_depth)
         .lineTo(0, pcb_lips_height)

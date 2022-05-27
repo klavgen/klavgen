@@ -58,7 +58,10 @@ def render_side_holder(
             config.rail_wall_width + config.tolerance + config.holder_rail_width,
             -2 * config.tolerance - config.front_support_depth - config.rail_wall_depth,
         )
-        .lineTo(0, -2 * config.tolerance - config.front_support_depth - config.rail_wall_depth)
+        .lineTo(
+            0,
+            -2 * config.tolerance - config.front_support_depth - config.rail_wall_depth,
+        )
         .close()
         .extrude(case_config.case_inner_height)
     )
@@ -93,9 +96,13 @@ def render_side_holder(
     debug = (
         base_wp.workplane(offset=5)
         .center(0, config.depth / 2)
-        .rect(config.width + 2 * config.tolerance + 2 * config.rail_wall_width, config.depth)
         .rect(
-            config.width + 2 * config.tolerance + 2 * config.rail_wall_width - 1, config.depth - 1
+            config.width + 2 * config.tolerance + 2 * config.rail_wall_width,
+            config.depth,
+        )
+        .rect(
+            config.width + 2 * config.tolerance + 2 * config.rail_wall_width - 1,
+            config.depth - 1,
         )
         .extrude(1)
     )
