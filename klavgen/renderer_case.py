@@ -365,6 +365,7 @@ def render_case(
             result.palm_rests = []
 
             connector_template = render_connector(case_config)
+            result.connector = connector_template
             connector_cutout_template = render_connector_cutout(case_config)
             case_connector_support_template = render_case_connector_support(case_config)
 
