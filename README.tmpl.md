@@ -1,7 +1,8 @@
-# Klavgen handwired keyboard generator
+# Klavgen: handwired keyboard generator
 
 Klavgen is a handwired keyboard generator written in Python, on top of [CadQuery](https://github.com/CadQuery/cadquery).
-It produces keyboards (like on the left) and makes handwiring easy and organized via switch holders (on the right):
+It produces keyboards (like on the left) and optionally makes handwiring easy and organized via switch holders (on the
+right):
 
 <p align="center">changequote(`{{', `}}')
 <img src="img/klavyl/front.png" alt="Klavyl" width="350"/>
@@ -13,22 +14,23 @@ submit a Github issue.
 
 Klavgen benefits:
 
-- Generates all the shells and support structures you need for a keyboard, in a way that's optimized for home **FDM
-  printing with no supports**
-- Is **low height**: only 11 mm in the default configuration)
-- Uses Kailh **hotswap sockets**, with support for both **MX** and **Choc** switches
+- **Generates the full keyboard**, including plate, bottom, palm rests and holders for the controller and TRRS jack
+- All models are optimized for home **FDM printing with no supports**
+- Produces **slim keyboards**: only 11 mm high in the default configuration
+- Support Kailh **hotswap sockets**, with support for both **MX** and **Choc** switches
 - Makes it **easy to solder** things, and requires no glue whatsoever
 - Uses **uninsulated wires**, thus no tedious wire stripping
-- Makes it easy to **reposition the keys after making the keybaord**
+- Makes it easy to **reposition the keys after making the keyboard**
 - Produces a sturdy build that **doesn't flex** when typed on
 
-The last 5 benefits are achieved by using switch holders (MX/Choc) that organize the wires, hold the Kailh sockets and
-diodes, support the switches, enable soldering everything in place, and allow moving keys later (they even have wire
-slack so that you can space keys further apart).
+The last 5 benefits are achieved by optionally using switch holders (MX/Choc) that organize the wires, hold the Kailh
+sockets and diodes, support the switches, enable soldering everything in place, and allow moving keys later (they even
+have wire slack so that you can space keys further apart).
 
-As of now:
+Klavgen can also skip the usage of switch holders to generate just a case with normal switch holes.
 
-- Code is still quite messy and not fully parameterized
+Limitations:
+
 - Configuring a keyboard requires code, it's not as easy as YAML
 - Docs are scarce (as you'll see below)
 
@@ -212,18 +214,37 @@ This is the result (`show(result.top, result.bottom, result.palm_rests[0])`):
 <img src="img/complex/complex_all_side.png" width="350"/>
 </p>
 
-Note that the palm rest is detachable. You can make it part of the bottom by changing the config to (see full code in
+Note that the palm rest is detachable.
+
+### Fixed palm rests
+
+You can make the palm rest a part of the bottom by changing the config (see full code in
 [`example_3__screw_holes_and_palm_rest_non_detachable.py`](example_3__screw_holes_and_palm_rest_non_detachable.py)):
 
 ```
 config = Config(case_config=CaseConfig(detachable_palm_rests=False))
 ```
 
-Now the `case_result.palm_rests` object is `None` so don't try to view it. Instead just check out the case bottom
+Now the `case_result.palm_rests` object is `None` so don't try to view it. Instead, just check out the case bottom
 (`show(result.bottom)`):
 
 <p align="center">
-<img src="img/complex/complex_all_non_detachable_palm_rests.png" width="350"/>
+<img src="img/complex/complex_bottom_non_detachable_palm_rests.png" width="350"/>
+</p>
+
+### Do not use switch holders
+
+If you do not want to use switch holders, you can disable them (see full code in
+[`example_3__screw_holes_and_palm_rest_no_holder.py`](example_3__screw_holes_and_palm_rest_no_holder.py)):
+
+```
+config = Config(case_config=CaseConfig(use_switch_holders=False))
+```
+
+Now the plate only has a square hole (`show(result.top)`):
+
+<p align="center">
+<img src="img/complex/complex_all_front_no_switch_holder.png" width="350"/>
 </p>
 
 ## 4. Let's use Choc switches
@@ -287,6 +308,8 @@ above).
 ## Important configs
 
 - `CaseConfig.switch_type` allows you to set the type of switches (`SwithType.MX` or `SwithType.CHOC`)
+- `CaseConfig.use_switch_holders` determines whether the keyboard will use switch holders (affects the cutouts and
+  whether a switch holder is returned when rendering the keyboard).
 - `CaseConfig.detachable_palm_rests` allows you to set whether palm rests should be detachable, or part of the case
   bottom.
 - `CaseConfig.side_fillet` sets a fillet on the case vertical edges. You should likely always use it in the final
@@ -335,7 +358,8 @@ This object contains the final keyboard components:
   present.
 - `keyboard_result.top` is the top plate (same as `case_results.top`). Always present.
 - `keyboard_result.bottom` is the case bottom (same as `case_results.bottom`). Always present.
-- `keyboard_result.switch_holder` is the switch holder. Always present.
+- `keyboard_result.switch_holder` is the switch holder. Present if switch holders are used
+  (`CaseConfig.use_switch_holders`).
 - `keyboard_result.connector` is the palm rests to case bottom connector. Present only if palm rests are defined and
   `CaseConfig.detachable_palm_rests` is `True`.
 - `keyboard_result.controller_holder` is the controller holder. Present only if a controller is defined.

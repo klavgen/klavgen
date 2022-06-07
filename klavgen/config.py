@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from enum import Enum
 
@@ -9,8 +9,56 @@ class SwitchType(Enum):
 
 
 @dataclass
+class MXKeyConfig:
+    # Switch hole
+    switch_width: float = 14
+    switch_depth: float = 14
+    switch_hole_tolerance: float = 0.05
+
+    # Orientation
+    north_facing: float = False
+
+    # Case tile
+    case_tile_margin_add_back_tolerance: bool = True
+    case_tile_margin: float = 8
+
+    # Keycap
+    keycap_width: float = 18
+    keycap_depth: float = 18
+    clearance_margin: float = 1
+
+    # Need enough space for the socket holder lips
+    switch_rim_width: float = 19
+    switch_rim_depth: float = 19
+
+    def __post_init__(self):
+        self.switch_hole_width: float = self.switch_width - self.switch_hole_tolerance
+        self.switch_hole_depth: float = self.switch_depth - self.switch_hole_tolerance
+
+        if self.case_tile_margin_add_back_tolerance:
+            self.case_tile_margin += self.switch_hole_tolerance / 2
+
+        self.case_tile_width: float = self.switch_hole_width + self.case_tile_margin * 2
+        self.case_tile_depth: float = self.switch_hole_depth + self.case_tile_margin * 2
+        self.keycap_clearance_width = self.keycap_width + self.clearance_margin
+        self.keycap_clearance_depth = self.keycap_depth + self.clearance_margin
+
+
+@dataclass
+class ChocKeyConfig(MXKeyConfig):
+    # Switch hole
+    switch_width: float = 13.8
+    switch_depth: float = 13.8
+
+    # Keycap
+    keycap_width: float = 17.5
+    keycap_depth: float = 16.5
+
+
+@dataclass
 class CaseConfig:
     switch_type: SwitchType = SwitchType.MX
+    use_switch_holders: bool = True
 
     case_thickness: float = 2
 
@@ -52,22 +100,22 @@ class ScrewHoleConfig:
 
 @dataclass
 class SocketConfig:
-    socket_height: float
-    socket_total_depth: float
+    socket_height: float = field(init=False)
+    socket_total_depth: float = field(init=False)
 
-    socket_bump_1_x_from_center: float
-    socket_bump_1_y_from_center: float
-    socket_bump_2_x_from_center: float
-    socket_bump_2_y_from_center: float
+    socket_bump_1_x_from_center: float = field(init=False)
+    socket_bump_1_y_from_center: float = field(init=False)
+    socket_bump_2_x_from_center: float = field(init=False)
+    socket_bump_2_y_from_center: float = field(init=False)
 
-    socket_locking_lip_start_x: float
-    socket_locking_lip_start_y: float
-    socket_locking_lip_width: float
+    socket_locking_lip_start_x: float = field(init=False)
+    socket_locking_lip_start_y: float = field(init=False)
+    socket_locking_lip_width: float = field(init=False)
 
-    socket_left_end_x: float
-    socket_right_end_x: float
+    socket_left_end_x: float = field(init=False)
+    socket_right_end_x: float = field(init=False)
 
-    solder_pin_width: float
+    solder_pin_width: float = field(init=False)
 
 
 @dataclass
@@ -95,23 +143,6 @@ class KailhMXSocketConfig(SocketConfig):
 
     solder_pin_width: float = 4.00
 
-    socket_total_depth: float = (
-        large_radius
-        + right_flat_depth_in_front_of_solder_pin
-        + right_flat_depth_solder_pin
-        + right_flat_depth_behind_solder_pin
-    )
-    socket_thin_part_depth: float = socket_total_depth - small_radius
-
-    left_flat_depth_solder_pin: float = (
-        socket_thin_part_depth
-        - left_flat_depth_in_front_of_solder_pin
-        - left_flat_depth_behind_solder_pin
-    )
-
-    back_flat_width: float = front_flat_width + large_radius - back_right_flat_width - small_radius
-    socket_total_width: float = front_flat_width + large_radius
-
     # Switch pin bumps
     socket_bump_radius: float = 1.6
 
@@ -125,27 +156,53 @@ class KailhMXSocketConfig(SocketConfig):
     socket_center_x_offset: float = -5.3
     socket_center_y_offset: float = -7
 
-    # Final switch pin bump coordinates
-    socket_bump_1_x_from_center: float = socket_bump_1_x + socket_center_x_offset
-    socket_bump_1_y_from_center: float = socket_bump_1_y + socket_center_y_offset
-    socket_bump_2_x_from_center: float = socket_bump_2_x + socket_center_x_offset
-    socket_bump_2_y_from_center: float = socket_bump_2_y + socket_center_y_offset
+    def __post_init__(self):
+        # Kailh socket outline, including solder pins
+        self.socket_total_depth: float = (
+            self.large_radius
+            + self.right_flat_depth_in_front_of_solder_pin
+            + self.right_flat_depth_solder_pin
+            + self.right_flat_depth_behind_solder_pin
+        )
+        self.socket_thin_part_depth: float = self.socket_total_depth - self.small_radius
 
-    # Final bounding box
-    socket_left_end_x: float = (
-        socket_center_x_offset  # start X is just the offset, since we start sketching from X = 0
-    )
-    socket_right_end_x: float = socket_total_width + socket_center_x_offset
+        self.left_flat_depth_solder_pin: float = (
+            self.socket_thin_part_depth
+            - self.left_flat_depth_in_front_of_solder_pin
+            - self.left_flat_depth_behind_solder_pin
+        )
 
-    socket_front_end_y: float = (
-        socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
-    )
+        self.back_flat_width: float = (
+            self.front_flat_width
+            + self.large_radius
+            - self.back_right_flat_width
+            - self.small_radius
+        )
+        self.socket_total_width: float = self.front_flat_width + self.large_radius
 
-    socket_back_right_end_y: float = socket_total_depth + socket_center_y_offset
+        # Final switch pin bump coordinates
+        self.socket_bump_1_x_from_center: float = self.socket_bump_1_x + self.socket_center_x_offset
+        self.socket_bump_1_y_from_center: float = self.socket_bump_1_y + self.socket_center_y_offset
+        self.socket_bump_2_x_from_center: float = self.socket_bump_2_x + self.socket_center_x_offset
+        self.socket_bump_2_y_from_center: float = self.socket_bump_2_y + self.socket_center_y_offset
 
-    socket_locking_lip_start_y: float = socket_thin_part_depth + socket_center_y_offset
-    socket_locking_lip_start_x: float = socket_left_end_x
-    socket_locking_lip_width: float = back_flat_width
+        # Final bounding box
+        self.socket_left_end_x: float = (
+            self.socket_center_x_offset  # start X is just the offset, since we start sketching from X = 0
+        )
+        self.socket_right_end_x: float = self.socket_total_width + self.socket_center_x_offset
+
+        self.socket_front_end_y: float = (
+            self.socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
+        )
+
+        self.socket_back_right_end_y: float = self.socket_total_depth + self.socket_center_y_offset
+
+        self.socket_locking_lip_start_y: float = (
+            self.socket_thin_part_depth + self.socket_center_y_offset
+        )
+        self.socket_locking_lip_start_x: float = self.socket_left_end_x
+        self.socket_locking_lip_width: float = self.back_flat_width
 
 
 @dataclass
@@ -173,47 +230,58 @@ class KailhChocSocketConfig(SocketConfig):
 
     front_right_corner_protrusion_width: float = 0.5
 
-    left_y_offset: float = socket_total_depth - left_depth
-    right_y_space_behind: float = socket_total_depth - right_depth
-
-    socket_bump_1_y: float = left_y_offset + left_depth / 2
-
-    socket_bump_2_x: float = socket_bump_1_x + bump_x_distance
-    socket_bump_2_y: float = socket_bump_1_y + bump_y_distance
-
     # Offsets from center
-    socket_center_x_offset: float = -socket_bump_1_x - 5
-    socket_center_y_offset: float = -socket_bump_1_y - 3.8
+    socket_bump_1_center_x_offset: float = -5
+    socket_bump_1_center_y_offset: float = -3.8
 
-    # Final switch pin bump coordinates
-    socket_bump_1_x_from_center: float = socket_bump_1_x + socket_center_x_offset
-    socket_bump_1_y_from_center: float = socket_bump_1_y + socket_center_y_offset
-    socket_bump_2_x_from_center: float = socket_bump_2_x + socket_center_x_offset
-    socket_bump_2_y_from_center: float = socket_bump_2_y + socket_center_y_offset
+    def __post_init__(self):
 
-    socket_left_end_x: float = socket_center_x_offset
-    socket_right_end_x: float = total_width + socket_center_x_offset
+        self.left_y_offset: float = self.socket_total_depth - self.left_depth
+        self.right_y_space_behind: float = self.socket_total_depth - self.right_depth
 
-    socket_front_end_y: float = (
-        socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
-    )
+        self.socket_bump_1_y: float = self.left_y_offset + self.left_depth / 2
 
-    socket_locking_lip_start_y: float = right_depth + socket_center_y_offset
-    socket_locking_lip_start_x: float = back_left_width + left_y_offset + socket_center_x_offset
-    socket_locking_lip_width: float = total_width - back_left_width - left_y_offset
+        self.socket_bump_2_x: float = self.socket_bump_1_x + self.bump_x_distance
+        self.socket_bump_2_y: float = self.socket_bump_1_y + self.bump_y_distance
+
+        # Offsets from center
+        self.socket_center_x_offset: float = (
+            -self.socket_bump_1_x + self.socket_bump_1_center_x_offset
+        )
+        self.socket_center_y_offset: float = (
+            -self.socket_bump_1_y + self.socket_bump_1_center_y_offset
+        )
+
+        # Final switch pin bump coordinates
+        self.socket_bump_1_x_from_center: float = self.socket_bump_1_x + self.socket_center_x_offset
+        self.socket_bump_1_y_from_center: float = self.socket_bump_1_y + self.socket_center_y_offset
+        self.socket_bump_2_x_from_center: float = self.socket_bump_2_x + self.socket_center_x_offset
+        self.socket_bump_2_y_from_center: float = self.socket_bump_2_y + self.socket_center_y_offset
+
+        self.socket_left_end_x: float = self.socket_center_x_offset
+        self.socket_right_end_x: float = self.total_width + self.socket_center_x_offset
+
+        self.socket_front_end_y: float = (
+            self.socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
+        )
+
+        self.socket_locking_lip_start_y: float = self.right_depth + self.socket_center_y_offset
+        self.socket_locking_lip_start_x: float = (
+            self.back_left_width + self.left_y_offset + self.socket_center_x_offset
+        )
+        self.socket_locking_lip_width: float = (
+            self.total_width - self.back_left_width - self.left_y_offset
+        )
 
 
 @dataclass
 class MXSwitchHolderConfig:
     case_config: CaseConfig = CaseConfig()
+    key_config: MXKeyConfig = MXKeyConfig()
     kailh_socket_config: KailhMXSocketConfig = KailhMXSocketConfig()
 
     # Switch hole
-    switch_width: float = 14
-    switch_depth: float = 14
-    switch_hole_tolerance: float = 0.05
-
-    switch_bottom_height: float = 5  # 3.2
+    switch_bottom_height: float = 5
     switch_bottom_buffer_height: float = 0.2
 
     # Plate holes for holder lips
@@ -230,8 +298,6 @@ class MXSwitchHolderConfig:
 
     # Y cutoffs
     cutoff_base_y_behind_socket_lip: float = 0.2
-    # cutoff_base_y_buffer: float = 0.4
-    # cutoff_base_y_depth: float = 6
     cutoff_y: float = 8.2
 
     # Socket supports
@@ -258,8 +324,8 @@ class MXSwitchHolderConfig:
     socket_lip_height: float = 0.2
 
     # Reverse position of diode and col wire:
-    #   False = diode on left, col wire on right when looking from the front wall)
-    #   True = diode on right, col wire on left
+    # * False = diode on left, col wire on right when looking from the front wall
+    # * True = diode on right, col wire on left
     reverse_diode_and_col_wire: bool = False
 
     #
@@ -375,13 +441,14 @@ class MXSwitchHolderConfig:
     back_side_cut_right_width: float = 1
 
     def __post_init__(self):
-        self.switch_hole_width: float = self.switch_width - self.switch_hole_tolerance
-        self.switch_hole_depth: float = self.switch_depth - self.switch_hole_tolerance
-
         self.holder_front_wall_depth: float = self.plate_front_hole_depth - self.holder_plate_gap
 
-        self.holder_width: float = self.switch_hole_width + 2 * self.holder_side_bottom_wall_width
-        self.holder_depth: float = self.switch_hole_depth + 2 * self.holder_front_wall_depth
+        self.holder_width: float = (
+            self.key_config.switch_hole_width + 2 * self.holder_side_bottom_wall_width
+        )
+        self.holder_depth: float = (
+            self.key_config.switch_hole_depth + 2 * self.holder_front_wall_depth
+        )
 
         self.holder_bottom_height: float = (
             self.socket_base_height
@@ -408,7 +475,7 @@ class MXSwitchHolderConfig:
         self.switch_hole_min_height: float = self.holder_height + self.case_config.case_thickness
 
         self.plate_front_hole_start_y: float = (
-            -self.switch_hole_depth / 2 - self.plate_front_hole_depth
+            -self.key_config.switch_hole_depth / 2 - self.plate_front_hole_depth
         )
 
         self.cutoff_base_y: float = (
@@ -454,12 +521,23 @@ class MXSwitchHolderConfig:
             - self.diode_center_y_in_front_of_back_wall
         )
 
+    def reset_dependencies(
+        self,
+        case_config: CaseConfig,
+        key_config: MXKeyConfig,
+        kailh_socket_config: KailhMXSocketConfig,
+    ):
+        self.case_config = case_config
+        self.key_config = key_config
+        self.kailh_socket_config = kailh_socket_config
+        self.__post_init__()
+
 
 @dataclass
 class ChocSwitchHolderConfig(MXSwitchHolderConfig):
+    key_config: ChocKeyConfig = ChocKeyConfig()
     kailh_socket_config: KailhChocSocketConfig = KailhChocSocketConfig()
-    switch_width: float = 13.8
-    switch_depth: float = 13.8
+
     switch_bottom_height: float = 2.2
 
     has_front_cutout_for_removal: bool = False
@@ -528,46 +606,16 @@ class ChocSwitchHolderConfig(MXSwitchHolderConfig):
     back_side_cut_left_width: float = 0.5
     back_side_cut_right_width: float = 1.5
 
-
-@dataclass
-class MXKeyConfig:
-    switch_holder_config: MXSwitchHolderConfig = MXSwitchHolderConfig()
-
-    # Orientation
-    north_facing: float = False
-
-    # Case tile
-    case_tile_margin_add_back_tolerance: bool = True
-    case_tile_margin: float = 8
-
-    # Keycap
-    keycap_width: float = 18
-    keycap_depth: float = 18
-    clearance_margin: float = 1
-
-    # Need enough space for the socket holder lips
-    switch_rim_width: float = 19
-    switch_rim_depth: float = 19
-
-    def __post_init__(self):
-        if self.case_tile_margin_add_back_tolerance:
-            self.case_tile_margin += self.switch_holder_config.switch_hole_tolerance / 2
-
-        self.case_tile_width: float = (
-            self.switch_holder_config.switch_hole_width + self.case_tile_margin * 2
-        )
-        self.case_tile_depth: float = (
-            self.switch_holder_config.switch_hole_depth + self.case_tile_margin * 2
-        )
-        self.keycap_clearance_width = self.keycap_width + self.clearance_margin
-        self.keycap_clearance_depth = self.keycap_depth + self.clearance_margin
-
-
-@dataclass
-class ChocKeyConfig(MXKeyConfig):
-    # Keycap
-    keycap_width: float = 17.5
-    keycap_depth: float = 16.5
+    def reset_dependencies(
+        self,
+        case_config: CaseConfig,
+        key_config: ChocKeyConfig,
+        kailh_socket_config: KailhChocSocketConfig,
+    ):
+        self.case_config = case_config
+        self.key_config = key_config
+        self.kailh_socket_config = kailh_socket_config
+        self.__post_init__()
 
 
 @dataclass
@@ -676,23 +724,38 @@ class TrrsJackConfig(SideHolderConfig):
 class Config:
     case_config: CaseConfig = CaseConfig()
 
+    mx_key_config: MXKeyConfig = MXKeyConfig()
+    choc_key_config: ChocKeyConfig = ChocKeyConfig()
+
     screw_hole_config: ScrewHoleConfig = ScrewHoleConfig()
 
     kailh_mx_socket_config: KailhMXSocketConfig = KailhMXSocketConfig()
     kailh_choc_socket_config: KailhChocSocketConfig = KailhChocSocketConfig()
 
-    # TODO: fix overriding
-    switch_holder_mx_config: MXSwitchHolderConfig = MXSwitchHolderConfig(
-        case_config=case_config, kailh_socket_config=kailh_mx_socket_config
-    )
-    switch_holder_choc_config: ChocSwitchHolderConfig = ChocSwitchHolderConfig(
-        case_config=case_config, kailh_socket_config=kailh_choc_socket_config
-    )
+    switch_holder_mx_config: MXSwitchHolderConfig = MXSwitchHolderConfig()
+    switch_holder_choc_config: ChocSwitchHolderConfig = ChocSwitchHolderConfig()
 
-    key_config: MXKeyConfig = (
-        MXKeyConfig(switch_holder_config=switch_holder_mx_config)
-        if case_config.switch_type == SwitchType.MX
-        else ChocKeyConfig(switch_holder_config=switch_holder_choc_config)
-    )
     controller_config: ControllerConfig = ControllerConfig()
     trrs_jack_config: TrrsJackConfig = TrrsJackConfig()
+
+    def __post_init__(self):
+        self.switch_holder_mx_config.reset_dependencies(
+            self.case_config, self.mx_key_config, self.kailh_mx_socket_config
+        )
+        self.switch_holder_choc_config.reset_dependencies(
+            self.case_config, self.choc_key_config, self.kailh_choc_socket_config
+        )
+
+    def get_switch_holder_config(self) -> MXSwitchHolderConfig:
+        return (
+            self.switch_holder_mx_config
+            if self.case_config.switch_type == SwitchType.MX
+            else self.switch_holder_choc_config
+        )
+
+    def get_key_config(self) -> MXKeyConfig:
+        return (
+            self.mx_key_config
+            if self.case_config.switch_type == SwitchType.MX
+            else self.choc_key_config
+        )

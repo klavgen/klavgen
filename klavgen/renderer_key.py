@@ -1,6 +1,6 @@
 import cadquery as cq
 from .classes import RenderedKey, Key, RenderedKeyTemplates
-from .config import MXKeyConfig, CaseConfig
+from .config import MXKeyConfig, CaseConfig, MXSwitchHolderConfig
 from .renderer_switch_holder import render_switch_hole
 from .utils import grow_z, create_workplane, position
 
@@ -23,11 +23,13 @@ def render_keycap_clearance(config: MXKeyConfig, case_config: CaseConfig):
     )
 
 
-def render_key_templates(case_config: CaseConfig, config: MXKeyConfig) -> RenderedKeyTemplates:
+def render_key_templates(
+    case_config: CaseConfig, config: MXSwitchHolderConfig
+) -> RenderedKeyTemplates:
     return RenderedKeyTemplates(
-        switch_hole=render_switch_hole(case_config, config.switch_holder_config),
-        case_clearance=render_case_clearance(config, case_config),
-        keycap_clearance=render_keycap_clearance(config, case_config),
+        switch_hole=render_switch_hole(case_config, config),
+        case_clearance=render_case_clearance(config.key_config, case_config),
+        keycap_clearance=render_keycap_clearance(config.key_config, case_config),
     )
 
 

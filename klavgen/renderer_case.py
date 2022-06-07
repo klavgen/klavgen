@@ -29,7 +29,7 @@ from .renderer_connector import (
     render_connector_cutout,
     render_case_connector_support,
 )
-from .renderer_switch_holder import render_mx_switch_holder, render_choc_switch_holder
+from .renderer_switch_holder import render_switch_holder
 
 import importlib
 
@@ -122,7 +122,8 @@ def render_case(
     result.keys = keys
 
     case_config = config.case_config
-    key_config = config.key_config
+    switch_holder_config = config.get_switch_holder_config()
+    key_config = config.get_key_config()
 
     assert (
         case_config.switch_plate_top_fillet is None
@@ -134,7 +135,7 @@ def render_case(
             abs(case_config.side_fillet - case_config.case_thickness) >= 0.01
         ), "Side fillet needs to be at least 0.01 above or below case thickness"
 
-    key_templates = render_key_templates(case_config, config.key_config)
+    key_templates = render_key_templates(case_config, switch_holder_config)
 
     rendered_keys = [render_key(key, key_templates, case_config, key_config) for key in keys]
     rendered_screw_holes = [
@@ -584,28 +585,24 @@ def render_case(
 
     if render_standard_components:
         # Add switch holders
-        switch_holder_render_func = (
-            render_mx_switch_holder
-            if case_config.switch_type == SwitchType.MX
-            else render_choc_switch_holder
-        )
-        switch_holder_template = switch_holder_render_func(
-            config, orient_for_printing=False
-        ).switch_holder
-        if not key_config.north_facing:
-            switch_holder_template = switch_holder_template.rotate((0, 0, 0), (0, 0, 1), 180)
+        if case_config.use_switch_holders:
+            switch_holder_template = render_switch_holder(
+                config, orient_for_printing=False
+            ).switch_holder
+            if not key_config.north_facing:
+                switch_holder_template = switch_holder_template.rotate((0, 0, 0), (0, 0, 1), 180)
 
-        switch_holder_config = config.switch_holder_mx_config
+            switch_holder_config = config.get_switch_holder_config()
 
-        for key in keys:
-            switch_holder_lr = LocationRotation(
-                x=key.x,
-                y=key.y,
-                z=key.z - case_config.case_thickness - switch_holder_config.holder_height,
-                rotate=key.rotate,
-                rotate_around=key.rotate_around,
-            )
-            standard_components.append(position(switch_holder_template, switch_holder_lr))
+            for key in keys:
+                switch_holder_lr = LocationRotation(
+                    x=key.x,
+                    y=key.y,
+                    z=key.z - case_config.case_thickness - switch_holder_config.holder_height,
+                    rotate=key.rotate,
+                    rotate_around=key.rotate_around,
+                )
+                standard_components.append(position(switch_holder_template, switch_holder_lr))
 
         # Add controller holder
         if controller:
