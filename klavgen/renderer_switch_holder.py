@@ -2,7 +2,7 @@ import math
 import cadquery as cq
 
 from .classes import RenderedSwitchHolder
-from .config import Config, MXSwitchHolderConfig, CaseConfig, SocketConfig, SwitchType
+from .config import Config, MXSwitchHolderConfig, CaseConfig, SwitchType
 from .renderer_kailh_mx_socket import draw_mx_socket
 from .renderer_kailh_choc_socket import draw_choc_socket
 from .utils import grow_z, grow_yz, union_list
@@ -14,39 +14,45 @@ def render_switch_hole(case_config: CaseConfig, config: MXSwitchHolderConfig):
     )
 
     switch_hole = wp.box(
-        config.switch_hole_width,
-        config.switch_hole_depth,
+        config.key_config.switch_hole_width,
+        config.key_config.switch_hole_depth,
         config.switch_hole_min_height,
         centered=grow_z,
     )
 
-    side_hole_left = wp.center(
-        -config.switch_hole_width / 2 - config.plate_side_hole_width,
-        -config.switch_hole_depth / 2,
-    ).box(
-        config.plate_side_hole_width,
-        config.plate_side_hole_depth,
-        config.switch_hole_min_height,
-        centered=False,
-    )
+    if case_config.use_switch_holders:
+        side_hole_left = wp.center(
+            -config.key_config.switch_hole_width / 2 - config.plate_side_hole_width,
+            -config.key_config.switch_hole_depth / 2,
+        ).box(
+            config.plate_side_hole_width,
+            config.plate_side_hole_depth,
+            config.switch_hole_min_height,
+            centered=False,
+        )
+        switch_hole = switch_hole.union(side_hole_left)
 
-    side_hole_right = wp.center(config.switch_hole_width / 2, -config.switch_hole_depth / 2).box(
-        config.plate_side_hole_width,
-        config.plate_side_hole_depth,
-        config.switch_hole_min_height,
-        centered=False,
-    )
+        side_hole_right = wp.center(
+            config.key_config.switch_hole_width / 2, -config.key_config.switch_hole_depth / 2
+        ).box(
+            config.plate_side_hole_width,
+            config.plate_side_hole_depth,
+            config.switch_hole_min_height,
+            centered=False,
+        )
+        switch_hole = switch_hole.union(side_hole_right)
 
-    front_hole = wp.center(-config.plate_front_hole_width / 2, config.plate_front_hole_start_y).box(
-        config.plate_front_hole_width,
-        config.plate_front_hole_depth,
-        config.switch_hole_min_height,
-        centered=False,
-    )
+        front_hole = wp.center(
+            -config.plate_front_hole_width / 2, config.plate_front_hole_start_y
+        ).box(
+            config.plate_front_hole_width,
+            config.plate_front_hole_depth,
+            config.switch_hole_min_height,
+            centered=False,
+        )
+        switch_hole = switch_hole.union(front_hole)
 
-    hole = switch_hole.union(side_hole_left).union(side_hole_right).union(front_hole)
-
-    return hole
+    return switch_hole
 
 
 def switch_holder_orient_and_center(obj, cf: MXSwitchHolderConfig):
@@ -74,8 +80,6 @@ def render_mx_switch_holder(
     return _render_switch_holder(
         socket=socket,
         cf=config.switch_holder_mx_config,
-        socket_cf=config.kailh_mx_socket_config,
-        case_config=config.case_config,
         orient_for_printing=orient_for_printing,
     )
 
@@ -88,8 +92,6 @@ def render_choc_switch_holder(
     return _render_switch_holder(
         socket=socket,
         cf=config.switch_holder_choc_config,
-        socket_cf=config.kailh_choc_socket_config,
-        case_config=config.case_config,
         orient_for_printing=orient_for_printing,
     )
 
@@ -97,10 +99,10 @@ def render_choc_switch_holder(
 def _render_switch_holder(
     socket,
     cf: MXSwitchHolderConfig,
-    socket_cf: SocketConfig,
-    case_config: CaseConfig,
     orient_for_printing=True,
 ) -> RenderedSwitchHolder:
+    case_config = cf.case_config
+    socket_cf = cf.kailh_socket_config
 
     wp = cq.Workplane("XY")
     wp_yz = cq.Workplane("YZ")
@@ -245,9 +247,9 @@ def _render_switch_holder(
     # Switch bottom hole
     switch_bottom_hole = (
         wp.workplane(offset=cf.holder_bottom_height)
-        .center(0, -cf.switch_hole_depth / 2)
+        .center(0, -cf.key_config.switch_hole_depth / 2)
         .box(
-            cf.switch_hole_width,
+            cf.key_config.switch_hole_width,
             cf.holder_depth * 2,
             cf.holder_height,
             centered=grow_yz,
@@ -421,14 +423,18 @@ def _render_switch_holder(
     # Left cut
     bottom_back_cut_left = wp.center(
         -cf.holder_width / 2,
-        -cf.switch_hole_depth / 2 + cf.holder_lips_depth + cf.back_side_cut_start_behind_lips,
+        -cf.key_config.switch_hole_depth / 2
+        + cf.holder_lips_depth
+        + cf.back_side_cut_start_behind_lips,
     ).box(cf.back_side_cut_left_width, cf.holder_depth, cf.holder_height, centered=False)
     holder = holder.cut(bottom_back_cut_left)
 
     # Right cut
     bottom_back_cut_right = wp.center(
         cf.holder_width / 2 - cf.back_side_cut_right_width,
-        -cf.switch_hole_depth / 2 + cf.holder_lips_depth + cf.back_side_cut_start_behind_lips,
+        -cf.key_config.switch_hole_depth / 2
+        + cf.holder_lips_depth
+        + cf.back_side_cut_start_behind_lips,
     ).box(cf.back_side_cut_right_width, cf.holder_depth, cf.holder_height, centered=False)
     holder = holder.cut(bottom_back_cut_right)
 
@@ -646,7 +652,7 @@ def draw_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
     # Left lip
     lips = (
         cq.Workplane("XZ")
-        .workplane(offset=cf.switch_hole_depth / 2)
+        .workplane(offset=cf.key_config.switch_hole_depth / 2)
         .center(
             -cf.holder_width / 2 + cf.holder_side_top_wall_x_offset,
             cf.holder_height,
@@ -670,7 +676,7 @@ def draw_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
     top_left_lip_side_cut = (
         cq.Workplane("YZ")
         .workplane(offset=-cf.holder_width / 2 - 2)
-        .center(-cf.switch_hole_depth / 2, cf.holder_height)
+        .center(-cf.key_config.switch_hole_depth / 2, cf.holder_height)
         .lineTo(5, 5)
         .lineTo(0, 5)
         .close()
