@@ -36,6 +36,7 @@ Limitations:
 
 # What's new
 
+- Jun 7, 2022: Add support for not using switch holders, therefore generating simple switch holes
 - May 20, 2022: Add support for Choc switches and refactor switch holder generation
 - May 10, 2022: Improve generation from KLE (http://www.keyboard-layout-editor.com/) (thanks @Tructruc) and support case
   geometry via the new `case_extras` parameter
