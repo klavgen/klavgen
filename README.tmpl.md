@@ -241,7 +241,7 @@ If you do not want to use switch holders, you can disable them (see full code in
 config = Config(case_config=CaseConfig(use_switch_holders=False))
 ```
 
-Now the plate only has a square hole (`show(result.top)`):
+Now the plate only has a square hole (`show(result.top, result.bottom, result.palm_rests[0])`):
 
 <p align="center">
 <img src="img/complex/complex_all_front_no_switch_holder.png" width="350"/>
