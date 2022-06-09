@@ -54,6 +54,9 @@ class ChocKeyConfig(MXKeyConfig):
     keycap_width: float = 17.5
     keycap_depth: float = 16.5
 
+    # Case tile
+    case_tile_margin: float = 8.1  # Bump up to produce same outlines as MX
+
 
 @dataclass
 class CaseConfig:
