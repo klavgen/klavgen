@@ -51,6 +51,7 @@ from .config import (
     ControllerConfig,
     KailhMXSocketConfig,
     MXKeyConfig,
+    ChocKeyConfig,
     MXSwitchHolderConfig,
     ChocSwitchHolderConfig,
     TrrsJackConfig,
