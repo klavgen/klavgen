@@ -1,8 +1,9 @@
 import cadquery as cq
-from .classes import RenderedKey, Key, RenderedKeyTemplates
-from .config import MXKeyConfig, CaseConfig, MXSwitchHolderConfig
+
+from .classes import Key, RenderedKey, RenderedKeyTemplates
+from .config import CaseConfig, MXKeyConfig, MXSwitchHolderConfig
 from .renderer_switch_holder import render_switch_hole
-from .utils import grow_z, create_workplane, position
+from .utils import create_workplane, grow_z, position
 
 
 def render_case_clearance(config: MXKeyConfig, case_config: CaseConfig):

@@ -1,4 +1,5 @@
 import cadquery as cq
+
 from .classes import Text
 from .utils import position
 

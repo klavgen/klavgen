@@ -1,8 +1,8 @@
 import cadquery as cq
 
 from .classes import Controller, RenderedSideHolder
-from .config import ControllerConfig, CaseConfig
-from .renderer_side_holder import render_side_holder, render_holder_latches
+from .config import CaseConfig, ControllerConfig
+from .renderer_side_holder import render_holder_latches, render_side_holder
 from .utils import grow_yz
 
 

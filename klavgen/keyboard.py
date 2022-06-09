@@ -1,16 +1,13 @@
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
-from .renderer_switch_holder import export_switch_holder_to_stl, render_switch_holder
-from .renderer_connector import render_connector, export_connector_to_stl
-from .renderer_controller import (
-    render_controller_holder,
-    export_controller_holder_to_stl,
-)
-from .renderer_trrs_jack import render_trrs_jack_holder, export_trrs_jack_holder_to_stl
-from .renderer_case import RenderCaseResult, render_case, export_case_to_stl
+from .classes import Controller, Cut, Key, PalmRest, Patch, ScrewHole, Text, TrrsJack
 from .config import Config
-from .classes import Key, ScrewHole, Controller, TrrsJack, Patch, Cut, PalmRest, Text
+from .renderer_case import RenderCaseResult, export_case_to_stl, render_case
+from .renderer_connector import export_connector_to_stl, render_connector
+from .renderer_controller import export_controller_holder_to_stl, render_controller_holder
+from .renderer_switch_holder import export_switch_holder_to_stl, render_switch_holder
+from .renderer_trrs_jack import export_trrs_jack_holder_to_stl, render_trrs_jack_holder
 
 
 @dataclass

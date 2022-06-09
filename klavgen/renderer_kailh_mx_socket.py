@@ -1,4 +1,4 @@
-from .config import KailhMXSocketConfig, Config
+from .config import Config, KailhMXSocketConfig
 
 
 def draw_socket_base(wp, cf: KailhMXSocketConfig):

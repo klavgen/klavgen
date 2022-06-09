@@ -1,4 +1,5 @@
 import cadquery as cq
+
 from .classes import Cut
 from .config import CaseConfig
 

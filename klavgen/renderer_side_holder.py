@@ -1,8 +1,8 @@
 import cadquery as cq
 
 from .classes import LocationRotation, RenderedSideHolder
-from .config import SideHolderConfig, CaseConfig
-from .utils import grow_yz, create_workplane
+from .config import CaseConfig, SideHolderConfig
+from .utils import create_workplane, grow_yz
 
 
 def render_side_holder(

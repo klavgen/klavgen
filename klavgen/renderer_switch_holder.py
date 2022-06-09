@@ -1,11 +1,12 @@
 import math
+
 import cadquery as cq
 
 from .classes import RenderedSwitchHolder
-from .config import Config, MXSwitchHolderConfig, CaseConfig, SwitchType
-from .renderer_kailh_mx_socket import draw_mx_socket
+from .config import CaseConfig, Config, MXSwitchHolderConfig, SwitchType
 from .renderer_kailh_choc_socket import draw_choc_socket
-from .utils import grow_z, grow_yz, union_list
+from .renderer_kailh_mx_socket import draw_mx_socket
+from .utils import grow_yz, grow_z, union_list
 
 
 def render_switch_hole(case_config: CaseConfig, config: MXSwitchHolderConfig):

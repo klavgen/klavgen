@@ -1,8 +1,8 @@
 import cadquery as cq
 
-from .classes import TrrsJack, RenderedSideHolder
-from .config import TrrsJackConfig, CaseConfig
-from .renderer_side_holder import render_side_holder, render_holder_latches
+from .classes import RenderedSideHolder, TrrsJack
+from .config import CaseConfig, TrrsJackConfig
+from .renderer_side_holder import render_holder_latches, render_side_holder
 from .utils import grow_yz
 
 

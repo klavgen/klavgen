@@ -1,5 +1,5 @@
 import functools
-from typing import List, Any
+from typing import Any, List
 
 import cadquery as cq
 
