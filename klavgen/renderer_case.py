@@ -1,50 +1,41 @@
+import importlib
 import math
-import cadquery as cq
-from typing import List, Optional, Any
 from dataclasses import dataclass
+from typing import Any, List, Optional
+
+import cadquery as cq
 
 from . import renderer_controller, renderer_trrs_jack
-
 from .classes import (
-    Key,
-    ScrewHole,
-    Patch,
-    Cut,
-    Text,
-    PalmRest,
     Controller,
-    TrrsJack,
+    Cut,
+    Key,
     LocationRotation,
+    PalmRest,
+    Patch,
+    ScrewHole,
+    Text,
+    TrrsJack,
 )
 from .config import Config, SwitchType
-
+from .renderer_connector import (
+    render_case_connector_support,
+    render_connector,
+    render_connector_cutout,
+)
 from .renderer_cut import render_cut
 from .renderer_key import render_key, render_key_templates
 from .renderer_palm_rest import render_palm_rest
 from .renderer_patch import render_patch
 from .renderer_screw_hole import render_screw_hole
-from .renderer_text import render_text
-from .renderer_connector import (
-    render_connector,
-    render_connector_cutout,
-    render_case_connector_support,
-)
 from .renderer_switch_holder import render_switch_holder
-
-import importlib
-
+from .renderer_text import render_text
 from .utils import position, union_list
 
 importlib.reload(renderer_controller)
 importlib.reload(renderer_trrs_jack)
-from .renderer_controller import (
-    render_controller_case_cutout_and_support,
-    render_controller_holder,
-)
-from .renderer_trrs_jack import (
-    render_trrs_jack_case_cutout_and_support,
-    render_trrs_jack_holder,
-)
+from .renderer_controller import render_controller_case_cutout_and_support, render_controller_holder
+from .renderer_trrs_jack import render_trrs_jack_case_cutout_and_support, render_trrs_jack_holder
 
 
 @dataclass

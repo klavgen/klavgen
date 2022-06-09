@@ -1,7 +1,7 @@
 import json
+from typing import List
 
 from .classes import Key
-from typing import List
 
 
 def generate_keys_from_kle_json(

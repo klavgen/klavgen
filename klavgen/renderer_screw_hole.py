@@ -1,6 +1,7 @@
 import cadquery as cq
-from .classes import ScrewHole, RenderedScrewHole
-from .config import ScrewHoleConfig, CaseConfig
+
+from .classes import RenderedScrewHole, ScrewHole
+from .config import CaseConfig, ScrewHoleConfig
 
 
 def render_screw_hole(
