@@ -362,6 +362,7 @@ def render_case(
             result.palm_rests = []
 
             connector_template = render_connector(case_config)
+            result.connector = connector_template
             connector_cutout_template = render_connector_cutout(case_config)
             case_connector_support_template = render_case_connector_support(case_config)
 
@@ -573,6 +574,10 @@ def render_case(
             top_text_union = top_text_union.cut(keycap_clearances).cut(result.switch_holes).clean()
 
             result.top = result.top.union(top_text_union)
+            
+    if key_config.amoeba_royale:
+        for post in rendered_keys:
+            result.top = result.top.union(post.amoeba_royale_post)
 
     if render_standard_components:
         # Add switch holders
