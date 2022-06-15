@@ -24,6 +24,7 @@ class RenderedKey:
     switch_rim: Any
     keycap_clearance: Any
     switch_hole: Any
+    amoeba_royale_post: Any
     debug: Any
 
 

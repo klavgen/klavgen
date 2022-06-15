@@ -1,7 +1,7 @@
 import json
-from typing import List
 
 from .classes import Key
+from typing import List
 
 
 def generate_keys_from_kle_json(
@@ -54,28 +54,11 @@ def generate_keys_from_kle_json(
                 # Ignore label formatting
                 item.pop("a", None)
 
-                # Ignore label font sizes
-                item.pop("fa", None)
-
                 # Ignore homing
                 item.pop("n", None)
 
-                # Ignore profile
-                item.pop("p", None)
-
-                # Ignore switch type
-                item.pop("sm", None)
-
-                # Ignore switch manufacturer
-                item.pop("sb", None)
-
-                # Ignore switch model
-                item.pop("st", None)
-
-                if item:
-                    print(
-                        f"Unknown items in KLE JSON, please submit an issue at https://github.com/klavgen/klavgen/issues: {item}"
-                    )
+                '''if item:
+                    raise Exception(f"Items remaining in config dict: {item} for row {row}")'''
             else:
                 key_label = item.replace("\n", " ")
                 x = cur_x + (width - 1) * half_step_size
