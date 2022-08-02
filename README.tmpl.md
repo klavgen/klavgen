@@ -17,7 +17,7 @@ Klavgen benefits:
 - **Generates the full keyboard**, including plate, bottom, palm rests and holders for the controller and TRRS jack
 - All models are optimized for home **FDM printing with no supports**
 - Produces **slim keyboards**: only 11 mm high in the default configuration
-- Support Kailh **hotswap sockets**, with support for both **MX** and **Choc** switches
+- Support Kailh **hotswap sockets**, with support for **MX** switches (and very early experimental support for **Choc**)
 - Makes it **easy to solder** things, and requires no glue whatsoever
 - Uses **uninsulated wires**, thus no tedious wire stripping
 - Makes it easy to **reposition the keys after making the keyboard**
@@ -29,6 +29,8 @@ have wire slack so that you can space keys further apart).
 
 Klavgen can also skip the usage of switch holders to generate just a case with normal switch holes.
 
+Note: Choc support is very early and not well tested.
+
 Limitations:
 
 - Configuring a keyboard requires code, it's not as easy as YAML
@@ -37,7 +39,7 @@ Limitations:
 # What's new
 
 - Jun 7, 2022: Add support for not using switch holders, therefore generating simple switch holes
-- May 20, 2022: Add support for Choc switches and refactor switch holder generation
+- May 20, 2022: Add experimental support for Choc switches; refactor switch holder generation
 - May 10, 2022: Improve generation from KLE (http://www.keyboard-layout-editor.com/) (thanks @Tructruc) and support case
   geometry via the new `case_extras` parameter
 - Apr 25, 2022: Add example STLs and improce docs
@@ -249,6 +251,8 @@ Now the plate only has a square hole (`show(result.top, result.bottom, result.pa
 </p>
 
 ## 4. Let's use Choc switches
+
+Note: Choc support is very experimental, not well tested and generally buggy!
 
 Let's change the config of the previous example to use Choc switches. This will change the size of the plate holes and
 will produce Choc switch holders (see full code in
