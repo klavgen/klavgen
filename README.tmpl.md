@@ -29,7 +29,7 @@ have wire slack so that you can space keys further apart).
 
 Klavgen can also skip the usage of switch holders to generate just a case with normal switch holes.
 
-Note: Choc support is very early and not well tested.
+**Note:** Choc support is very early and not well tested.
 
 Limitations:
 
@@ -252,7 +252,7 @@ Now the plate only has a square hole (`show(result.top, result.bottom, result.pa
 
 ## 4. Let's use Choc switches
 
-Note: Choc support is very experimental, not well tested and generally buggy!
+**Note:** Choc support is very experimental, not well tested and generally buggy!
 
 Let's change the config of the previous example to use Choc switches. This will change the size of the plate holes and
 will produce Choc switch holders (see full code in
