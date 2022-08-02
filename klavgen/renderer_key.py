@@ -1,8 +1,8 @@
 import cadquery as cq
 
 from .classes import Key, RenderedKey, RenderedKeyTemplates
-from .config import CaseConfig, MXKeyConfig, MXSwitchHolderConfig
-from .renderer_switch_holder import render_switch_hole
+from .config import CaseConfig, Config, MXKeyConfig, SwitchType
+from .renderer_switch_holder import render_switch_holder, render_switch_hole
 from .utils import create_workplane, grow_z, position
 
 
@@ -24,13 +24,20 @@ def render_keycap_clearance(config: MXKeyConfig, case_config: CaseConfig):
     )
 
 
-def render_key_templates(
-    case_config: CaseConfig, config: MXSwitchHolderConfig
-) -> RenderedKeyTemplates:
+def render_key_templates(config: Config) -> RenderedKeyTemplates:
+    case_config = config.case_config
+    switch_holder_config = config.get_switch_holder_config()
+    key_config = config.get_key_config()
+
+    fused_switch_holder = None
+    if case_config.switch_type == SwitchType.CHOC and case_config.use_switch_holders:
+        fused_switch_holder = render_switch_holder(config).switch_holder
+
     return RenderedKeyTemplates(
-        switch_hole=render_switch_hole(case_config, config),
-        case_clearance=render_case_clearance(config.key_config, case_config),
-        keycap_clearance=render_keycap_clearance(config.key_config, case_config),
+        switch_hole=render_switch_hole(case_config, switch_holder_config),
+        case_clearance=render_case_clearance(key_config, case_config),
+        keycap_clearance=render_keycap_clearance(key_config, case_config),
+        fused_switch_holder=fused_switch_holder,
     )
 
 
@@ -66,11 +73,16 @@ def render_key(
     # that are unrealistically close
     keycap_clearance = position(templates.keycap_clearance, key)
 
-    # The hole for the switch assembly
+    # The hole for the switch and holder
     switch_hole = templates.switch_hole
     if not config.north_facing:
         switch_hole = switch_hole.rotate((0, 0, 0), (0, 0, 1), 180)
     switch_hole = position(switch_hole, key)
+
+    # Fused switch holder
+    fused_switch_holder = templates.fused_switch_holder
+    if fused_switch_holder:
+        fused_switch_holder = position(fused_switch_holder, key)
 
     # Debug: keycap outline in the air
     keycap_width = key.keycap_width or config.keycap_width
@@ -88,5 +100,6 @@ def render_key(
         switch_rim=switch_rim,
         keycap_clearance=keycap_clearance,
         switch_hole=switch_hole,
+        fused_switch_holder=fused_switch_holder,
         debug=debug,
     )

@@ -13,6 +13,9 @@ from . import (
     renderer_kailh_mx_socket,
     renderer_key,
     renderer_switch_holder,
+    renderer_switch_holder_choc,
+    renderer_switch_holder_choc_bottom,
+    renderer_switch_holder_choc_top,
     renderer_trrs_jack,
     renderer_usbc_jack,
     rendering,
@@ -21,6 +24,9 @@ from . import (
 importlib.reload(rendering)
 importlib.reload(classes)
 importlib.reload(config)
+importlib.reload(renderer_switch_holder_choc)
+importlib.reload(renderer_switch_holder_choc_bottom)
+importlib.reload(renderer_switch_holder_choc_top)
 importlib.reload(constants)
 importlib.reload(keyboard)
 importlib.reload(kle)

@@ -2,6 +2,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from .constants import (
+    CHOC_KEYCAP_1U_DEPTH,
+    CHOC_KEYCAP_1U_WIDTH,
+    MX_KEYCAP_1U_DEPTH,
+    MX_KEYCAP_1U_WIDTH,
+)
+
 
 class SwitchType(Enum):
     MX = 0
@@ -13,7 +20,7 @@ class MXKeyConfig:
     # Switch hole
     switch_width: float = 14
     switch_depth: float = 14
-    switch_hole_tolerance: float = 0.05
+    switch_hole_tolerance: float = 0  # 0.05
 
     # Orientation
     north_facing: float = False
@@ -23,13 +30,13 @@ class MXKeyConfig:
     case_tile_margin: float = 8
 
     # Keycap
-    keycap_width: float = 18
-    keycap_depth: float = 18
+    keycap_width: float = MX_KEYCAP_1U_WIDTH
+    keycap_depth: float = MX_KEYCAP_1U_DEPTH
     clearance_margin: float = 1
 
     # Need enough space for the socket holder lips
-    switch_rim_width: float = 19
-    switch_rim_depth: float = 19
+    switch_rim_width: float = MX_KEYCAP_1U_WIDTH + 1
+    switch_rim_depth: float = MX_KEYCAP_1U_DEPTH + 1
 
     def __post_init__(self):
         self.switch_hole_width: float = self.switch_width - self.switch_hole_tolerance
@@ -50,12 +57,16 @@ class ChocKeyConfig(MXKeyConfig):
     switch_width: float = 13.8
     switch_depth: float = 13.8
 
-    # Keycap
-    keycap_width: float = 17.5
-    keycap_depth: float = 16.5
-
     # Case tile
     case_tile_margin: float = 8.1  # Bump up to produce same outlines as MX
+
+    # Keycap
+    keycap_width: float = CHOC_KEYCAP_1U_WIDTH
+    keycap_depth: float = CHOC_KEYCAP_1U_DEPTH
+
+    # Need enough space for the socket holder lips
+    switch_rim_width: float = CHOC_KEYCAP_1U_WIDTH + 1
+    switch_rim_depth: float = CHOC_KEYCAP_1U_DEPTH + 1
 
 
 @dataclass
@@ -219,15 +230,15 @@ class KailhChocSocketConfig(SocketConfig):
 
     socket_height: float = 1.8
 
-    pins_inset_depth: float = 1
-    solder_pin_width: float = 1.9
+    pins_inset_depth: float = 1.3
+    solder_pin_width: float = 1.8
     pin_top_clearance_height: float = 0.4
 
     bump_x_distance: float = 5
     bump_y_distance: float = -2.2
 
     socket_bump_radius: float = 1.6
-    socket_bump_height: float = 1.25
+    socket_bump_height: float = 1.2  # 1.25 in reality
 
     socket_bump_1_x: float = 2.4
 
@@ -267,6 +278,7 @@ class KailhChocSocketConfig(SocketConfig):
         self.socket_front_end_y: float = (
             self.socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
         )
+        self.socket_back_end_y: float = self.socket_front_end_y + self.socket_total_depth
 
         self.socket_locking_lip_start_y: float = self.right_depth + self.socket_center_y_offset
         self.socket_locking_lip_start_x: float = (
@@ -367,11 +379,15 @@ class MXSwitchHolderConfig:
     #
 
     switch_center_pin_y: float = 0
-    switch_center_pin_radius: float = 2.2
+    switch_center_pin_radius: float = (
+        2.2  # Cherry MX pin has a diameter of 4 (in reality it seems a little less)
+    )
 
     switch_side_pin_distance: float = 5
     switch_side_pin_y: float = 0
-    switch_side_pin_radius: float = 1.1
+    switch_side_pin_radius: float = (
+        1.05  # Cherry MX pin has a diameter of 1.7 (in reality it seems a little less)
+    )
 
     #
     # Back wrapping posts and col/row separator
@@ -562,11 +578,13 @@ class ChocSwitchHolderConfig(MXSwitchHolderConfig):
     #
 
     switch_center_pin_y: float = 0
-    switch_center_pin_radius: float = 2.7
+    switch_center_pin_radius: float = 1.9  # 2.65  # V1 pin has a diameter of 3.2 (); V2 pin has a diameter of 4.8 (in reality it seems a little more)
 
     switch_side_pin_distance: float = 5.5
     switch_side_pin_y: float = 0
-    switch_side_pin_radius: float = 1.1
+    switch_side_pin_radius: float = (
+        1.1  # V1 has pins with diameter 1.8 (in reality is quite a bit less, ~1.6)
+    )
 
     #
     # Front wire holes
@@ -608,6 +626,9 @@ class ChocSwitchHolderConfig(MXSwitchHolderConfig):
 
     back_side_cut_left_width: float = 0.5
     back_side_cut_right_width: float = 1.5
+
+    plate_side_hole_width: float = 1.1
+    holder_side_bottom_wall_width: float = 1
 
     def reset_dependencies(
         self,

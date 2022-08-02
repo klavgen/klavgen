@@ -45,6 +45,7 @@ from .renderer_trrs_jack import render_trrs_jack_case_cutout_and_support, render
 class RenderCaseResult:
     keys: Optional[List[Key]] = (None,)
     switch_holes: Any = None
+    fused_switch_holders: Any = None
     screw_hole_rims: Any = None
     patches: Any = None
     cuts: Any = None
@@ -133,7 +134,7 @@ def render_case(
             abs(case_config.side_fillet - case_config.case_thickness) >= 0.01
         ), "Side fillet needs to be at least 0.01 above or below case thickness"
 
-    key_templates = render_key_templates(case_config, switch_holder_config)
+    key_templates = render_key_templates(config)
 
     # Do rendering
     stage_rendered_components: Dict[RenderingPipelineStage, List[Any]] = defaultdict(list)
@@ -226,6 +227,8 @@ def render_case(
     keycap_clearances = union_list([rk.keycap_clearance for rk in rendered_keys])
 
     result.switch_holes = union_list([rk.switch_hole for rk in rendered_keys])
+
+    result.fused_switch_holders = union_list([rk.fused_switch_holder for rk in rendered_keys])
 
     for screw_hole in rendered_screw_holes:
         result.switch_holes = result.switch_holes.union(screw_hole.hole)
@@ -536,6 +539,9 @@ def render_case(
         result.bottom = result.bottom.union(result.palm_rests_after_fillet[0])
 
     result.top = result.top.cut(result.switch_holes).clean()
+
+    if result.fused_switch_holders:
+        result.top = result.top.union(result.fused_switch_holders)
 
     # Debugs
     if switch_debug:

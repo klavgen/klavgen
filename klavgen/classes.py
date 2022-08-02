@@ -26,6 +26,7 @@ class RenderedKey:
     switch_rim: Any
     keycap_clearance: Any
     switch_hole: Any
+    fused_switch_holder: Any
     debug: Any
 
 
@@ -34,6 +35,7 @@ class RenderedKeyTemplates:
     switch_hole: Any
     case_clearance: Any
     keycap_clearance: Any
+    fused_switch_holder: Any
 
 
 @dataclass

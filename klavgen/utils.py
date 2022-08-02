@@ -56,7 +56,16 @@ grow_yz = (True, False, False)
 
 
 def _cq_union_reductor(a, b):
-    return a.union(b)
+    if a is not None and b is not None:
+        return a.union(b)
+
+    if a is not None:
+        return a
+
+    if b is not None:
+        return b
+
+    return None
 
 
 def union_list(objects: List[Any]):
