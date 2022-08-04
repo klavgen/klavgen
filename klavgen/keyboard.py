@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .classes import Controller, Cut, Key, PalmRest, Patch, ScrewHole, Text, TrrsJack
 from .config import Config
@@ -8,6 +8,7 @@ from .renderer_connector import export_connector_to_stl, render_connector
 from .renderer_controller import export_controller_holder_to_stl, render_controller_holder
 from .renderer_switch_holder import export_switch_holder_to_stl, render_switch_holder
 from .renderer_trrs_jack import export_trrs_jack_holder_to_stl, render_trrs_jack_holder
+from .rendering import Renderable
 
 
 @dataclass
@@ -19,6 +20,7 @@ class RenderKeyboardResult:
     connector: Optional[Any] = None
     controller_holder: Optional[Any] = None
     trrs_jack_holder: Optional[Any] = None
+    separate_components: Optional[Dict[str, Any]] = None
     palm_rests: Optional[List[Any]] = None
 
 
@@ -27,6 +29,7 @@ def render_and_save_keyboard(
     screw_holes: Optional[List[ScrewHole]] = None,
     controller: Optional[Controller] = None,
     trrs_jack: Optional[TrrsJack] = None,
+    components: Optional[List[Renderable]] = None,
     case_extras: Optional[List[Any]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
@@ -44,6 +47,7 @@ def render_and_save_keyboard(
     :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
     :param controller: A Controller object defining where the controller back center is. Optional.
     :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
+    :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
     :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
@@ -67,6 +71,7 @@ def render_and_save_keyboard(
         screw_holes=screw_holes,
         controller=controller,
         trrs_jack=trrs_jack,
+        components=components,
         patches=patches,
         cuts=cuts,
         case_extras=case_extras,
@@ -103,6 +108,13 @@ def render_and_save_keyboard(
 
         export_connector_to_stl(connector)
 
+    rendered_components = None
+    if case_result.separate_components:
+        rendered_components = {}
+        for separate_component in case_result.separate_components:
+            rendered_component = separate_component.render_and_export_to_stl()
+            rendered_components[separate_component.name] = rendered_component
+
     return RenderKeyboardResult(
         case_result=case_result,
         top=case_result.top,
@@ -111,5 +123,6 @@ def render_and_save_keyboard(
         connector=connector,
         controller_holder=controller_holder,
         trrs_jack_holder=trrs_jack_holder,
+        separate_components=rendered_components,
         palm_rests=palm_rests,
     )

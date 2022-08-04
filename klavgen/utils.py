@@ -3,14 +3,14 @@ from typing import Any, List
 
 import cadquery as cq
 
-from .classes import LocationRotation
+from .classes import LocationOrientation
 
 
 def highest_from_workplane(workplane):
     return cq.selectors.DirectionMinMaxSelector(workplane.plane.zDir, True)
 
 
-def position(wp, lr: LocationRotation):
+def position(wp, lr: LocationOrientation):
     """
     Move an object stack (=workplane) to the given relative location and Z-rotation
     :param wp: workplane to move
@@ -27,7 +27,7 @@ def position(wp, lr: LocationRotation):
     return wp
 
 
-def create_workplane(lr: LocationRotation):
+def create_workplane(lr: LocationOrientation):
     """
     Create a workplane parallel to XY at the given global location and Z-rotation
     :param lr: location and rotation

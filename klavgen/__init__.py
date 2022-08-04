@@ -14,8 +14,11 @@ from . import (
     renderer_key,
     renderer_switch_holder,
     renderer_trrs_jack,
+    renderer_usbc_jack,
+    rendering,
 )
 
+importlib.reload(rendering)
 importlib.reload(classes)
 importlib.reload(config)
 importlib.reload(constants)
@@ -29,9 +32,22 @@ importlib.reload(renderer_kailh_choc_socket)
 importlib.reload(renderer_key)
 importlib.reload(renderer_switch_holder)
 importlib.reload(renderer_trrs_jack)
+importlib.reload(renderer_usbc_jack)
+
 
 # Classes
-from .classes import Controller, Cut, Key, PalmRest, Patch, ScrewHole, Text, TrrsJack
+from .classes import (
+    Controller,
+    Cut,
+    Key,
+    PalmRest,
+    Patch,
+    Renderable,
+    ScrewHole,
+    Text,
+    TrrsJack,
+    USBCJack,
+)
 
 # Config
 from .config import (
@@ -45,6 +61,7 @@ from .config import (
     MXSwitchHolderConfig,
     SwitchType,
     TrrsJackConfig,
+    USBCJackConfig,
 )
 
 # Constants
@@ -89,4 +106,9 @@ from .renderer_trrs_jack import (
     export_trrs_jack_holder_to_step,
     export_trrs_jack_holder_to_stl,
     render_trrs_jack_holder,
+)
+from .renderer_usbc_jack import (
+    export_usbc_jack_holder_to_step,
+    export_usbc_jack_holder_to_stl,
+    render_usbc_jack_holder,
 )
