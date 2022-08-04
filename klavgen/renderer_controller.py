@@ -37,8 +37,8 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
     usb_port_hole_start_height_from_pcb_bottom = 1.2
 
     # Calculated
-    pcb_width = config.item_width + 2 * config.item_width_tolerance
-    pcb_depth = config.item_depth + 2 * config.item_depth_tolerance
+    pcb_width = config.item_width  # + 2 * config.item_width_tolerance
+    pcb_depth = config.item_depth  # + 2 * config.item_depth_tolerance
 
     # Base
 
@@ -138,7 +138,7 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
     holder = holder.cut(usb_port_hole)
 
     # Rail latches
-    holder = holder.union(render_holder_latches(config))
+    # holder = holder.union(render_holder_latches(config))
 
     # Rotate 180 degrees to orient so USB port is on the back
     holder = holder.rotate((0, 0, 0), (0, 0, 1), 180)

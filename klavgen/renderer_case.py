@@ -1,7 +1,8 @@
 import importlib
 import math
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import cadquery as cq
 
@@ -10,14 +11,15 @@ from .classes import (
     Controller,
     Cut,
     Key,
-    LocationRotation,
+    LocationOrientation,
     PalmRest,
     Patch,
+    Renderable,
     ScrewHole,
     Text,
     TrrsJack,
 )
-from .config import Config, SwitchType
+from .config import Config
 from .renderer_connector import (
     render_case_connector_support,
     render_connector,
@@ -30,6 +32,7 @@ from .renderer_patch import render_patch
 from .renderer_screw_hole import render_screw_hole
 from .renderer_switch_holder import render_switch_holder
 from .renderer_text import render_text
+from .rendering import RENDERERS, RenderingPipelineStage, SeparateComponentRender
 from .utils import position, union_list
 
 importlib.reload(renderer_controller)
@@ -67,6 +70,8 @@ class RenderCaseResult:
     bottom: Any = None
     debug: Any = None
     standard_components: Any = None
+    components: Optional[Dict[str, Dict[str, List[Any]]]] = None
+    separate_components: Optional[List[SeparateComponentRender]] = None
 
 
 def render_case(
@@ -74,6 +79,7 @@ def render_case(
     screw_holes: Optional[List[ScrewHole]] = None,
     controller: Optional[Controller] = None,
     trrs_jack: Optional[TrrsJack] = None,
+    components: Optional[List[Renderable]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
     case_extras: Optional[List[Any]] = None,
@@ -91,6 +97,7 @@ def render_case(
     :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
     :param controller: A Controller object defining where the controller back center is. Optional.
     :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
+    :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
     :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
@@ -128,6 +135,39 @@ def render_case(
 
     key_templates = render_key_templates(case_config, switch_holder_config)
 
+    # Do rendering
+    stage_rendered_components: Dict[RenderingPipelineStage, List[Any]] = defaultdict(list)
+    result.separate_components = []
+    result.components = {}
+    if components:
+        for component in components:
+            if not component.render_func_name:
+                raise Exception(f"Component {type(component)} needs to define render_func_name")
+            render_func = RENDERERS.get_renderer(component.render_func_name)
+            if not render_func:
+                raise Exception(
+                    f"Rendering function {component.render_func_name} for component {type(component)} not found"
+                )
+
+            render_result = render_func(component, config)
+
+            for rendered_item in render_result.items:
+                stage_rendered_components[rendered_item.pipeline_stage].append(rendered_item.shape)
+
+                # Add to result
+                stage_lower = rendered_item.pipeline_stage.name.lower()
+                if stage_lower not in result.components:
+                    result.components[stage_lower] = {}
+
+                stage_results = result.components[stage_lower]
+                if render_result.name not in stage_results:
+                    stage_results[render_result.name] = []
+
+                stage_results[render_result.name].append(rendered_item.shape)
+
+            if render_result.separate_components:
+                result.separate_components.extend(render_result.separate_components)
+
     rendered_keys = [render_key(key, key_templates, case_config, key_config) for key in keys]
     rendered_screw_holes = [
         render_screw_hole(screw_hole, config.screw_hole_config, case_config)
@@ -152,7 +192,12 @@ def render_case(
 
     standard_components = []
 
-    case_columns = union_list([rk.case_column for rk in rendered_keys])
+    case_columns = union_list(
+        [rk.case_column for rk in rendered_keys]
+        + stage_rendered_components[RenderingPipelineStage.CASE_SOLID]
+    )
+
+    # case_columns = case_columns + stage_rendered_components.get(RenderingPipelineStage.CASE_SOLID)
 
     if rendered_controller:
         case_columns = case_columns.union(rendered_controller.case_column)
@@ -451,7 +496,7 @@ def render_case(
                         # )
                         # r.debug = r.debug.union(debug_line) if r.debug else debug_line
 
-                        connector_location = LocationRotation(
+                        connector_location = LocationOrientation(
                             x=connector_location_x,
                             y=connector_location_y,
                             z=-case_config.case_base_height,
@@ -513,6 +558,14 @@ def render_case(
             else rendered_trrs_jack.debug
         )
 
+    debug_items = union_list(stage_rendered_components[RenderingPipelineStage.DEBUG])
+    if debug_items:
+        result.debug = result.debug.union(debug_items) if result.debug else debug_items
+
+    cuts = union_list(stage_rendered_components[RenderingPipelineStage.BOTTOM_CUTS])
+    if cuts:
+        result.bottom = result.bottom.cut(cuts)
+
     if result.shell_cut:
         result.bottom = result.bottom.cut(result.shell_cut)
 
@@ -535,6 +588,10 @@ def render_case(
         ).split(keepBottom=True)
 
         result.bottom = result.bottom.union(result.screw_hole_rims_bottom)
+
+    additions = union_list(stage_rendered_components[RenderingPipelineStage.AFTER_SHELL_ADDITIONS])
+    if additions:
+        result.bottom = result.bottom.union(additions)
 
     if result.controller_rail:
         result.bottom = result.bottom.union(result.controller_rail)
@@ -586,7 +643,7 @@ def render_case(
             switch_holder_config = config.get_switch_holder_config()
 
             for key in keys:
-                switch_holder_lr = LocationRotation(
+                switch_holder_lr = LocationOrientation(
                     x=key.x,
                     y=key.y,
                     z=key.z - case_config.case_thickness - switch_holder_config.holder_height,
@@ -603,7 +660,7 @@ def render_case(
                 (0, -case_config.case_thickness - controller_config.tolerance, 0)
             )
 
-            controller_lr = LocationRotation(
+            controller_lr = LocationOrientation(
                 x=controller.x,
                 y=controller.y,
                 z=controller.z - case_config.case_base_height + case_config.case_thickness,
@@ -621,7 +678,7 @@ def render_case(
                 (0, -case_config.case_thickness - trrs_jack_config.tolerance, 0)
             )
 
-            trrs_jack_lr = LocationRotation(
+            trrs_jack_lr = LocationOrientation(
                 x=trrs_jack.x,
                 y=trrs_jack.y,
                 z=trrs_jack.z - case_config.case_base_height + case_config.case_thickness,
@@ -630,6 +687,9 @@ def render_case(
             )
 
             standard_components.append(position(trrs_jack_holder, trrs_jack_lr))
+
+        for component in result.separate_components:
+            standard_components.append(component.render_in_place_func())
 
         result.standard_components = union_list(standard_components)
 

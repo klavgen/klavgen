@@ -1,12 +1,12 @@
 import cadquery as cq
 
-from .classes import LocationRotation, RenderedSideHolder
+from .classes import LocationOrientation, RenderedSideHolder
 from .config import CaseConfig, SideHolderConfig
 from .utils import create_workplane, grow_yz
 
 
 def render_side_holder(
-    lr: LocationRotation, config: SideHolderConfig, case_config: CaseConfig
+    lr: LocationOrientation, config: SideHolderConfig, case_config: CaseConfig
 ) -> RenderedSideHolder:
     base_wp = create_workplane(lr)
 
@@ -42,6 +42,8 @@ def render_side_holder(
         )
     )
 
+    # Left rail
+
     rail_wp = base_wp.workplane(
         offset=-case_config.case_base_height + case_config.case_thickness
     ).center(0, config.depth)
@@ -66,24 +68,7 @@ def render_side_holder(
         .extrude(case_config.case_inner_height)
     )
 
-    latch_hole_left = (
-        rail_wp.workplane(
-            offset=config.rail_latch_offset_from_bottom + config.rail_latch_base_height / 2
-        )
-        .center(
-            -config.width / 2
-            + config.rail_latch_offset_from_side
-            + config.rail_latch_base_width / 2,
-            -2 * config.tolerance - config.front_support_depth,
-        )
-        .transformed(rotate=(90, 0, 0))
-        .rect(config.rail_latch_base_width, config.rail_latch_base_height)
-        .workplane(offset=config.rail_latch_hole_depth)
-        .rect(config.rail_latch_tip_width, config.rail_latch_tip_height)
-        .loft()
-    )
-
-    rail_left = rail_left.cut(latch_hole_left)
+    # Right rail as mirror of the lef tone
 
     center_yz_plane = rail_wp.transformed(rotate=(0, 90, 0))
     rail_right = rail_left.mirror(
@@ -128,4 +113,8 @@ def render_holder_latches(config: SideHolderConfig):
 
     rail_latch_right = rail_latch_left.mirror("YZ")
 
-    return rail_latch_left.union(rail_latch_right)
+    latches = rail_latch_left.union(rail_latch_right)
+
+    latches = latches.translate((config.width / 2, 0, 0))
+
+    return latches

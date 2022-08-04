@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from typing import Any, List, Optional, Tuple
 
+from .rendering import Renderable
+
 
 @dataclass
-class LocationRotation:
+class LocationOrientation:
     x: float
     y: float
     z: float = 0.0
@@ -12,7 +14,7 @@ class LocationRotation:
 
 
 @dataclass
-class Key(LocationRotation):
+class Key(LocationOrientation):
     keycap_width: Optional[float] = None
     keycap_depth: Optional[float] = None
 
@@ -61,7 +63,7 @@ class Cut:
 
 
 @dataclass
-class Text(LocationRotation):
+class Text(LocationOrientation):
     text: str = ""
     font_size: float = 6
     extrude: float = 0.4
@@ -76,13 +78,19 @@ class RenderedSideHolder:
 
 
 @dataclass
-class Controller(LocationRotation):
+class Controller(LocationOrientation):
     pass
 
 
 @dataclass
-class TrrsJack(LocationRotation):
+class TrrsJack(LocationOrientation):
     pass
+
+
+@dataclass
+class USBCJack(Renderable, LocationOrientation):
+    name = "usbc_jack"
+    render_func_name: str = "usbc_jack"
 
 
 @dataclass

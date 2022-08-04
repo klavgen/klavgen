@@ -63,14 +63,14 @@ class CaseConfig:
     switch_type: SwitchType = SwitchType.MX
     use_switch_holders: bool = True
 
-    case_thickness: float = 2
+    case_thickness: float = 2  # 2.4
 
     # Total height, including top and bottom thickness
     # MX: 11 = 5 switch holder (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
     #   2 bottom thickness
-    # Choc: 8.2 = 2.2 switch holder (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket +
-    #   1 socket base + 2 bottom thickness
-    case_base_height: float = 8.2  # 11
+    # Choc: 9 = 2.4 switch holder/top thickness (incl buffer of 0.2) + 4.2 usbc socket (disregard 1.2 socket bumps + 1.8 socket) +
+    #   + 2.4 bottom thickness
+    case_base_height: float = 11  # 9
 
     # Global clearance height
     clearance_height: float = 100
@@ -624,19 +624,24 @@ class ChocSwitchHolderConfig(MXSwitchHolderConfig):
 @dataclass
 class SideHolderConfig:
     item_width: float
-    side_supports_width: float
-    rail_width: float
 
     item_depth: float
-    front_support_depth: float
     back_support_depth: float
 
     holder_height: float
 
+    holder_hole_width: float
     case_hole_width: float
 
-    item_width_tolerance: float = 0.1
-    item_depth_tolerance: float = 0.1
+    holder_hole_start_z: float
+
+    front_support_depth: float = 1.4
+
+    side_supports_width: float = 1
+    rail_width: float = 2
+
+    # item_width_tolerance: float = 0.1
+    # item_depth_tolerance: float = 0.1
 
     case_tile_margin: float = 7
 
@@ -661,18 +666,9 @@ class SideHolderConfig:
     tolerance: float = 0.15
 
     def __post_init__(self):
-        self.width = (
-            self.item_width
-            + 2 * self.item_width_tolerance
-            + 2 * self.side_supports_width
-            + 2 * self.rail_width
-        )
-        self.depth = (
-            self.item_depth
-            + 2 * self.item_depth_tolerance
-            + self.front_support_depth
-            + self.back_support_depth
-        )
+        self.base_width = self.item_width + 2 * self.side_supports_width
+        self.width = self.base_width + 2 * self.rail_width
+        self.depth = self.item_depth + self.front_support_depth + self.back_support_depth
         self.holder_rail_width = self.rail_width - self.rail_width_inset
         self.rail_latch_tip_width = self.rail_latch_base_width - 2 * self.rail_latch_depth
         self.rail_latch_offset_from_bottom: float = (
@@ -684,12 +680,11 @@ class SideHolderConfig:
 class ControllerConfig(SideHolderConfig):
     item_width: float = 18
 
-    side_supports_width: float = 1
-    rail_width: float = 2
-
     item_depth: float = 33
-    front_support_depth: float = 1.4
     back_support_depth: float = 1.4
+
+    holder_hole_width: float = 8.8
+    holder_hole_start_z: float = 1.6
 
     case_hole_width: float = 18
 
@@ -700,18 +695,16 @@ class ControllerConfig(SideHolderConfig):
 class TrrsJackConfig(SideHolderConfig):
     item_width: float = 6
 
-    side_supports_width: float = 1
-    rail_width: float = 2
-
     item_depth: float = 12
-    front_support_depth: float = 1.4
     back_support_depth: float = 2
+
+    holder_hole_width: float = 5.3
+    holder_hole_start_z: float = 0
 
     case_hole_width: float = 10
 
     holder_height: float = 7
 
-    holder_hole_width: float = 5.3
     holder_right_bracket_depth: float = 9.5
     holder_left_front_bracket_depth: float = 2
     holder_left_bracket_gap: float = 5
@@ -721,6 +714,31 @@ class TrrsJackConfig(SideHolderConfig):
     holder_bracket_lip_start_before_top: float = 0.2
     holder_back_hole_depth: float = 1.0
     holder_back_hole_radius: float = 2
+
+
+@dataclass
+class USBCJackConfig(SideHolderConfig):
+    item_width: float = 9
+
+    item_depth: float = 14.5
+    back_support_depth: float = 1
+
+    holder_hole_width: float = 9
+    holder_hole_start_z: float = 1
+
+    case_hole_width: float = 9
+
+    holder_height: float = 4.2
+
+    item_height: float = 3.2
+
+    metal_part_depth: float = 7
+
+    stopper_depth: float = 1.2
+    # stopper_width: float = 0.8
+
+    top_lip_width: float = 0.3
+    top_lip_height: float = 0.5
 
 
 @dataclass
@@ -740,6 +758,7 @@ class Config:
 
     controller_config: ControllerConfig = ControllerConfig()
     trrs_jack_config: TrrsJackConfig = TrrsJackConfig()
+    usbc_jack_config: USBCJackConfig = USBCJackConfig()
 
     def __post_init__(self):
         self.switch_holder_mx_config.reset_dependencies(

@@ -18,7 +18,7 @@ def render_trrs_jack_holder(config: TrrsJackConfig = TrrsJackConfig()):
     wp = cq.Workplane("XY")
 
     base_width = (
-        config.item_width + 2 * config.side_supports_width + 2 * config.item_width_tolerance
+        config.item_width + 2 * config.side_supports_width  # + 2 * config.item_width_tolerance
     )
 
     # Front support
@@ -44,8 +44,8 @@ def render_trrs_jack_holder(config: TrrsJackConfig = TrrsJackConfig()):
     holder = holder.cut(front_hole)
 
     trrs_jack = wp_mid_xy.center(0, config.front_support_depth).box(
-        config.item_width + 2 * config.item_width_tolerance,
-        config.item_depth + 2 * config.item_depth_tolerance,
+        config.item_width,  # + 2 * config.item_width_tolerance,
+        config.item_depth,  # + 2 * config.item_depth_tolerance,
         config.holder_height,
         centered=grow_yz,
     )
