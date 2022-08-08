@@ -1,11 +1,11 @@
 import cadquery as cq
 
 from .classes import LocationOrientation, RenderedSideHolder
-from .config import CaseConfig, SideHolderConfig
+from .config import CaseConfig, Config, SideHolderConfig
 from .utils import create_workplane, grow_yz
 
 
-def render_side_holder(
+def render_side_case_hole_rail(
     lr: LocationOrientation, config: SideHolderConfig, case_config: CaseConfig
 ) -> RenderedSideHolder:
     base_wp = create_workplane(lr)
@@ -31,7 +31,7 @@ def render_side_holder(
         base_wp.workplane(
             offset=-case_config.case_base_height + config.case_hole_start_from_case_bottom
         )
-        .center(0, config.depth - config.case_hole_depth_in_front_of_wall)
+        .center(0, config.depth - config.case_hole_depth_in_front_of_case_wall)
         .box(
             config.case_hole_width,
             config.case_hole_clearance_depth,
@@ -43,33 +43,33 @@ def render_side_holder(
     )
 
     # Left rail
-
     rail_wp = base_wp.workplane(
         offset=-case_config.case_base_height + case_config.case_thickness
     ).center(0, config.depth)
 
     rail_left = (
-        rail_wp.center(-config.rail_wall_width - config.width / 2 - config.tolerance, 0)
+        rail_wp.center(-config.rail_wall_width - config.width / 2 - config.horizontal_tolerance, 0)
         .lineTo(config.rail_wall_width, 0)
-        .lineTo(config.rail_wall_width, -2 * config.tolerance - config.front_support_depth)
         .lineTo(
-            config.rail_wall_width + config.tolerance + config.holder_rail_width,
-            -2 * config.tolerance - config.front_support_depth,
+            config.rail_wall_width, -2 * config.horizontal_tolerance - config.holder_bracket_depth
         )
         .lineTo(
-            config.rail_wall_width + config.tolerance + config.holder_rail_width,
-            -2 * config.tolerance - config.front_support_depth - config.rail_wall_depth,
+            config.rail_wall_width + config.horizontal_tolerance + config.rail_width,
+            -2 * config.horizontal_tolerance - config.holder_bracket_depth,
+        )
+        .lineTo(
+            config.rail_wall_width + config.horizontal_tolerance + config.rail_width,
+            -2 * config.horizontal_tolerance - config.holder_bracket_depth - config.rail_wall_depth,
         )
         .lineTo(
             0,
-            -2 * config.tolerance - config.front_support_depth - config.rail_wall_depth,
+            -2 * config.horizontal_tolerance - config.holder_bracket_depth - config.rail_wall_depth,
         )
         .close()
         .extrude(case_config.case_inner_height)
     )
 
-    # Right rail as mirror of the lef tone
-
+    # Right rail as mirror of the left rail
     center_yz_plane = rail_wp.transformed(rotate=(0, 90, 0))
     rail_right = rail_left.mirror(
         mirrorPlane=center_yz_plane.plane.zDir, basePointVector=center_yz_plane.val()
@@ -82,11 +82,11 @@ def render_side_holder(
         base_wp.workplane(offset=5)
         .center(0, config.depth / 2)
         .rect(
-            config.width + 2 * config.tolerance + 2 * config.rail_wall_width,
+            config.width + 2 * config.horizontal_tolerance + 2 * config.rail_wall_width,
             config.depth,
         )
         .rect(
-            config.width + 2 * config.tolerance + 2 * config.rail_wall_width - 1,
+            config.width + 2 * config.horizontal_tolerance + 2 * config.rail_wall_width - 1,
             config.depth - 1,
         )
         .extrude(1)
@@ -95,26 +95,30 @@ def render_side_holder(
     return RenderedSideHolder(case_column=case_column, rail=rail, hole=hole, debug=debug)
 
 
-def render_holder_latches(config: SideHolderConfig):
-    rail_latch_left = (
-        cq.Workplane("XZ")
-        .workplane(offset=-config.front_support_depth)
-        .center(
-            config.width / 2
-            - config.rail_latch_offset_from_side
-            - config.rail_latch_base_width / 2,
-            config.rail_latch_offset_from_bottom + config.rail_latch_base_height / 2,
-        )
-        .rect(config.rail_latch_base_width, config.rail_latch_base_height)
-        .workplane(offset=-config.rail_latch_depth)
-        .rect(config.rail_latch_tip_width, config.rail_latch_tip_height)
-        .loft()
+def render_side_mount_bracket(
+    config: Config, side_holder_config: SideHolderConfig, fill_case_wall_hole: bool
+):
+    case_config = config.case_config
+
+    wp = cq.Workplane("XY")
+
+    # Mount
+    mount = wp.box(
+        side_holder_config.width,
+        side_holder_config.holder_bracket_depth,
+        case_config.case_inner_height - side_holder_config.vertical_tolerance,
+        centered=grow_yz,
     )
 
-    rail_latch_right = rail_latch_left.mirror("YZ")
+    if fill_case_wall_hole:
+        case_wall_fill = wp.center(
+            0, -case_config.case_thickness - side_holder_config.horizontal_tolerance
+        ).box(
+            side_holder_config.case_hole_width - 2 * side_holder_config.horizontal_tolerance,
+            case_config.case_thickness + side_holder_config.horizontal_tolerance,
+            case_config.case_inner_height - side_holder_config.vertical_tolerance,
+            centered=grow_yz,
+        )
+        mount = mount.union(case_wall_fill)
 
-    latches = rail_latch_left.union(rail_latch_right)
-
-    latches = latches.translate((config.width / 2, 0, 0))
-
-    return latches
+    return mount

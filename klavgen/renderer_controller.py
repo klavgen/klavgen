@@ -2,7 +2,7 @@ import cadquery as cq
 
 from .classes import Controller, RenderedSideHolder
 from .config import CaseConfig, ControllerConfig
-from .renderer_side_holder import render_holder_latches, render_side_holder
+from .renderer_side_holder import render_side_case_hole_rail
 from .utils import grow_yz
 
 
@@ -11,7 +11,7 @@ def render_controller_case_cutout_and_support(
     config: ControllerConfig = ControllerConfig(),
     case_config: CaseConfig = CaseConfig(),
 ) -> RenderedSideHolder:
-    return render_side_holder(controller, config, case_config)
+    return render_side_case_hole_rail(controller, config, case_config)
 
 
 def render_controller_holder(config: ControllerConfig = ControllerConfig()):
@@ -33,7 +33,6 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
     pcb_lips_back_width = 10.6
 
     # USB port hole
-    usb_port_hole_width = 8.8
     usb_port_hole_start_height_from_pcb_bottom = 1.2
 
     # Calculated
@@ -44,7 +43,7 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
 
     holder = wp.box(
         pcb_width + 2 * config.side_supports_width,
-        pcb_depth + config.front_support_depth + config.back_support_depth,
+        pcb_depth + config.holder_bracket_depth + config.back_support_depth,
         base_height,
         centered=grow_yz,
     )
@@ -54,18 +53,18 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
 
     base_hole_left = wp.center(
         -base_center_width / 2 - base_hole_width,
-        config.front_support_depth + base_front_depth,
+        config.holder_bracket_depth + base_front_depth,
     ).box(base_hole_width, base_hole_depth, base_height, centered=False)
 
     base_hole_right = wp.center(
-        base_center_width / 2, config.front_support_depth + base_front_depth
+        base_center_width / 2, config.holder_bracket_depth + base_front_depth
     ).box(base_hole_width, base_hole_depth, base_height, centered=False)
 
     holder = holder.cut(base_hole_left).cut(base_hole_right)
 
     # Front support
     front_support = wp.box(
-        config.width, config.front_support_depth, config.holder_height, centered=grow_yz
+        config.width, config.holder_bracket_depth, config.holder_height, centered=grow_yz
     )
 
     holder = holder.union(front_support)
@@ -75,7 +74,7 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
     front_pcb_lips = (
         wp_yz.workplane(offset=-pcb_width / 2 + pcb_lips_front_side_margin)
         .center(
-            config.front_support_depth,
+            config.holder_bracket_depth,
             base_height + pcb_lips_start_height_from_pcb_bottom,
         )
         .lineTo(pcb_lips_depth, pcb_lips_depth)
@@ -90,7 +89,7 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
     back_pcb_lips = (
         wp_yz.workplane(offset=-pcb_lips_back_width / 2)
         .center(
-            config.front_support_depth + pcb_depth,
+            config.holder_bracket_depth + pcb_depth,
             base_height + pcb_lips_start_height_from_pcb_bottom,
         )
         .lineTo(-pcb_lips_depth, pcb_lips_depth)
@@ -109,14 +108,14 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
 
     side_back_supports_outer_shape = wp.box(
         pcb_width + 2 * config.side_supports_width,
-        pcb_depth + config.front_support_depth + config.back_support_depth,
+        pcb_depth + config.holder_bracket_depth + config.back_support_depth,
         sides_and_back_support_height,
         centered=grow_yz,
     )
 
     side_back_supports_inner_shape = wp.box(
         pcb_width,
-        pcb_depth + config.front_support_depth,
+        pcb_depth + config.holder_bracket_depth,
         sides_and_back_support_height,
         centered=grow_yz,
     )
@@ -129,16 +128,13 @@ def render_controller_holder(config: ControllerConfig = ControllerConfig()):
     usb_port_hole = wp.workplane(
         offset=base_height + usb_port_hole_start_height_from_pcb_bottom
     ).box(
-        usb_port_hole_width,
-        config.front_support_depth + pcb_lips_depth,
+        config.jack_width,
+        config.holder_bracket_depth + pcb_lips_depth,
         config.holder_height,
         centered=grow_yz,
     )
 
     holder = holder.cut(usb_port_hole)
-
-    # Rail latches
-    # holder = holder.union(render_holder_latches(config))
 
     # Rotate 180 degrees to orient so USB port is on the back
     holder = holder.rotate((0, 0, 0), (0, 0, 1), 180)
