@@ -87,7 +87,13 @@ from .renderer_case import (
     move_top,
     render_case,
 )
-from .renderer_connector import export_connector_to_step, export_connector_to_stl, render_connector
+from .renderer_connector import (
+    export_connector_to_step,
+    export_connector_to_stl,
+    render_case_connector_support,
+    render_connector,
+    render_connector_cutout,
+)
 from .renderer_controller import (
     export_controller_holder_to_step,
     export_controller_holder_to_stl,

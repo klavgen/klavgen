@@ -742,6 +742,23 @@ class USBCJackConfig(SideHolderConfig):
 
 
 @dataclass
+class ConnectorConfig:
+    center_console_width: float = 3.0
+
+    end_tab_depth: float = 2.5
+    end_tab_side_width: float = 2.5
+
+    height: float = 5.0
+
+    chamfer: float = 2.0
+
+    tab_support_wall_size: float = 1
+
+    horizontal_tolerance: float = 0.15
+    vertical_tolerance: float = 0.4
+
+
+@dataclass
 class Config:
     case_config: CaseConfig = CaseConfig()
 
@@ -757,8 +774,11 @@ class Config:
     switch_holder_choc_config: ChocSwitchHolderConfig = ChocSwitchHolderConfig()
 
     controller_config: ControllerConfig = ControllerConfig()
+
     trrs_jack_config: TrrsJackConfig = TrrsJackConfig()
     usbc_jack_config: USBCJackConfig = USBCJackConfig()
+
+    connector_config: ConnectorConfig = ConnectorConfig()
 
     def __post_init__(self):
         self.switch_holder_mx_config.reset_dependencies(

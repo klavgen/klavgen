@@ -1,57 +1,103 @@
 import cadquery as cq
 
-from .config import CaseConfig
+from .config import Config
+from .utils import grow_yz
 
 
-def render_connector_cutout(case_config: CaseConfig):
-    wp = cq.Workplane("XY").tag("base")
+def render_connector(config: Config = Config()):
+    conn_config = config.connector_config
+    wp = cq.Workplane("XY")
 
-    # TODO: assumes switch_plate_gap_to_palm_rest is 0.5
+    # Render back half, then mirror
 
-    connector_cutout = (
-        wp.box(6.2, 2.2, 5.2, centered=False)
-        .workplaneFromTagged("base")
-        .center(2, 2.2)
-        .box(2.2, 4.5 - 0.2 + 0.2, 5, centered=False)
-        .workplaneFromTagged("base")
-        .center(0, 6.5 + 0.2)
-        .box(6.2, 2.2, 5.2, centered=False)
-        .translate((-3 - 0.1, -8.5 / 2 - 0.2, 0))
-        .edges(">Z and (>X or <X) and |Y")
-        .chamfer(2)
+    # Center console
+    center_console_depth = (
+        config.case_config.switch_plate_gap_to_palm_rest / 2
+        + config.case_config.case_thickness
+        + conn_config.horizontal_tolerance
+    )
+    connector = wp.box(
+        conn_config.center_console_width, center_console_depth, conn_config.height, centered=grow_yz
     )
 
-    return connector_cutout
-
-
-def render_connector(case_config: CaseConfig = CaseConfig()):
-    wp = cq.Workplane("XY").tag("base")
-
-    # TODO: assumes switch_plate_gap_to_palm_rest is 0.5
-
-    connector = (
-        wp.box(6, 2, 5, centered=False)
-        .workplaneFromTagged("base")
-        .center(2, 2)
-        .box(2, 4.7, 5, centered=False)
-        .workplaneFromTagged("base")
-        .center(0, 6.7)
-        .box(6, 2, 5, centered=False)
-        .translate((-3, -8.5 / 2 - 0.1, 0))
-        .edges(">Z and (>X or <X) and |Y")
-        .chamfer(2)
+    # End tab
+    end_tab = wp.center(0, center_console_depth).box(
+        conn_config.end_tab_side_width * 2 + conn_config.center_console_width,
+        conn_config.end_tab_depth,
+        conn_config.height,
+        centered=grow_yz,
     )
+    end_tab = end_tab.edges(">Z and |Y").chamfer(conn_config.chamfer)
+    connector = connector.union(end_tab)
+
+    # Mirror
+    connector_front = connector.mirror(mirrorPlane="XZ")
+    connector = connector.union(connector_front)
 
     return connector
 
 
-def render_case_connector_support(case_config: CaseConfig):
-    connector_cutout = render_connector_cutout(case_config)
+def render_connector_cutout(config: Config = Config()):
+    conn_config = config.connector_config
+    wp = cq.Workplane("XY")
+
+    # Render back half, then mirror
+
+    # Center console
+    center_console_depth = (
+        config.case_config.switch_plate_gap_to_palm_rest / 2 + config.case_config.case_thickness
+    )
+    connector_cutout = wp.box(
+        conn_config.center_console_width + 2 * conn_config.horizontal_tolerance,
+        center_console_depth,
+        conn_config.height + conn_config.vertical_tolerance,
+        centered=grow_yz,
+    )
+
+    # End tab
+    end_tab = wp.center(0, center_console_depth).box(
+        conn_config.end_tab_side_width * 2
+        + conn_config.center_console_width
+        + 2 * conn_config.horizontal_tolerance,
+        conn_config.end_tab_depth + 2 * conn_config.horizontal_tolerance,
+        conn_config.height + conn_config.vertical_tolerance,
+        centered=grow_yz,
+    )
+    end_tab = end_tab.edges(">Z and |Y").chamfer(conn_config.chamfer)
+    connector_cutout = connector_cutout.union(end_tab)
+
+    # Mirror
+    connector_front = connector_cutout.mirror(mirrorPlane="XZ")
+    connector_cutout = connector_cutout.union(connector_front)
+
+    return connector_cutout
+
+
+def render_case_connector_support(config: Config = Config()):
+    connector_cutout = render_connector_cutout(config)
+    conn_config = config.connector_config
+
+    cutout_width = (
+        conn_config.end_tab_side_width * 2
+        + conn_config.center_console_width
+        + 2 * conn_config.horizontal_tolerance
+    )
+    cutout_depth = (
+        config.case_config.case_thickness
+        + conn_config.end_tab_depth
+        + 2 * conn_config.horizontal_tolerance
+    )
+    cutout_height = conn_config.height + conn_config.vertical_tolerance
 
     return (
         cq.Workplane("XY")
-        .box(8, 5, 6, centered=(True, False, False))
-        .translate((0, case_config.switch_plate_gap_to_palm_rest / 2, 0))
+        .center(0, config.case_config.switch_plate_gap_to_palm_rest / 2)
+        .box(
+            cutout_width + 2 * conn_config.tab_support_wall_size,
+            cutout_depth + conn_config.tab_support_wall_size,
+            cutout_height + conn_config.tab_support_wall_size,
+            centered=grow_yz,
+        )
         .cut(connector_cutout)
     )
 
