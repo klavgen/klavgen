@@ -14,7 +14,7 @@ submit a Github issue.
 
 Klavgen benefits:
 
-- **Generates the full keyboard**, including plate, bottom, palm rests and holders for the controller and TRRS jack
+- **Generates the full keyboard**, including plate, bottom, palm rests and holders for the controller and TRRS/USBC jack
 - All models are optimized for home **FDM printing with no supports**
 - Produces **slim keyboards**: only 11 mm high in the default configuration
 - Support Kailh **hotswap sockets**, with support for **MX** switches (and very early experimental support for **Choc**)
@@ -57,7 +57,8 @@ See the [`example_stls`](example_stls) directory for example STL outputs. These 
 | **Palm rest**: attaches to the bottom via connectors (can also be fused with the bottom, see below)                                                                                                       | [`palm_rest.stl`](example_stls/palm_rest.stl)                 | <p align="center"><img src="img/components/palm_rest.png" alt="Palm rest back" width="300"/></p>           |
 | **Switch holder**: Holds the Kailh hotswap socket (MX or Choc) and allows you to solder the diode, column and row wires in-place. These  should be printed in ABS since the soldering iron will be close. | [`switch_holder.stl`](example_stls/switch_holder.stl)         | <p align="center"><img src="img/components/switch_holder.png" alt="Switch holder" width="200"/></p>        |
 | **Pro Micro controller holder**: holds the Arduino Pro Micro                                                                                                                                              | [`controller_holder.stl`](example_stls/controller_holder.stl) | <p align="center"><img src="img/components/controller_holder.png" alt="Pro Micro holder" width="200"/></p> |
-| **TRRS jack holder**: holds the TRRS jack                                                                                                                                                                 | [`trrs_jack_holder.stl`](example_stls/trrs_jack_holder.stl)   | <p align="center"><img src="img/components/trrs_jack_holder.png" alt="TRRS jack holder" width="150"/></p>  |
+| **TRRS jack holder**: holds the TRRS jack (if not using USBC)                                                                                                                                             | [`trrs_jack_holder.stl`](example_stls/trrs_jack_holder.stl)   | <p align="center"><img src="img/components/trrs_jack_holder.png" alt="TRRS jack holder" width="150"/></p>  |
+| **USBC jack holder**: holds the USBC jack (if not using TRRS)                                                                                                                                             | [`usbc_jack_holder.stl`](example_stls/usbc_jack_holder.stl)   | <p align="center"><img src="img/components/usbc_jack_holder.png" alt="USBC jack holder" width="150"/></p>  |
 | **Connector**: connects the palm rest to the bottom                                                                                                                                                       | [`connector.stl`](example_stls/connector.stl)                 | <p align="center"><img src="img/components/connector.png" alt="Connector" width="150"/></p>                |
 
 # Keyboards generated with Klavgen
@@ -66,7 +67,7 @@ See the [`example_stls`](example_stls) directory for example STL outputs. These 
 
 [Klavyl](https://github.com/klavgen/klavyl) is my personal keyboard, a modification to
 [Redox](https://github.com/mattdibi/redox-keyboard). It uses most of Klavgen's capabilities, including screw holes,
-manually defined case outlines, Pro Micro and TRRS jack cutouts and holders, and palm rests. Check out the repo for the
+manually defined case outlines, Pro Micro and USBC jack cutouts and holders, and palm rests. Check out the repo for the
 full config.
 
 <p align="center">
@@ -436,17 +437,17 @@ above).
   product if you have palm rests (so they don't dig in your hands), but it's very prone to failure, see warning above.
 - `ScrewHoleConfig.screw_insert_hole_width` sets the size of the hole for screws and defaults to a value suitable for
   melting inserts. If you don't use inserts, you should lower the value.
-- `KeyConfig.case_tile_margin`, `ControllerConfig.case_tile_margin` and `TrrsJackConfig.case_tile_margin` is the size of
-  the case generated around keys, controller holders, and TRRS jack holders. If you use `case_extras` or a `Patch`
-  object to define your case outlines, you can freely lower these.
+- `KeyConfig.case_tile_margin`, `ControllerConfig.case_tile_margin`, `TrrsJackConfig.case_tile_margin`, and
+  `USBCJackConfig.case_tile_margin` is the size of the case generated around keys, controller holders, and TRRS/USBC
+  jack holders. If you use `case_extras` or a `Patch` object to define your case outlines, you can freely lower these.
 - `MXSwitchHolderConfig.switch_hole_tolerance` and `ChocSwitchHolderConfig.switch_hole_tolerance` sets (in mm) how much
   smaller the switch holes should be made to account for imperfections in 3D printing. Defaults to 0.05.
 
 ## The `render_standard_components` parameter
 
-When `render_standard_components` is set to `True` in a call to `render_case`, all holders (switch, controller, TRRS
-jack) and palm rest connectors are returned in the `.standard_components` object. These help you see what the final
-keyboard will look like.
+When `render_standard_components` is set to `True` in a call to `render_case`, all holders (switch, controller,
+TRRS/USBC jack) and palm rest connectors are returned in the `.standard_components` object. These help you see what the
+final keyboard will look like.
 
 This is what `example.py` looks like with standard components added
 (`show(keyboard_result.top, keybaord_result.bottom, keyboard_result.palm_rests[0], keyboard_result.case_result.standard_components)`):
@@ -462,7 +463,7 @@ This object contains the individual steps when constructing the case. They key o
 - `case_result.top` is the top plate
 - `case_result.bottom` is the case bottom
 - `case_result.palm_rests` is a **list** of palm rest objects
-- `case_result.standard_components` is a rendering of all holders (switch, controller, TRRS jack) and palm rest
+- `case_result.standard_components` is a rendering of all holders (switch, controller, TRRS/USBC jack) and palm rest
   connectors (see above).
 
 Additionally, there are many intermediate objects that are useful for troubleshooting and auditing when something is not
@@ -482,5 +483,6 @@ This object contains the final keyboard components:
   `CaseConfig.detachable_palm_rests` is `True`.
 - `keyboard_result.controller_holder` is the controller holder. Present only if a controller is defined.
 - `keyboard_result.trrs_jack_holder` is the TRRS jack holder. Present only if a TRRS jack is defined.
+- `keyboard_result.usbc_jack_holder` is the USBC jack holder. Present only if a USBC jack is defined.
 - `keyboard_result.palm_rests` is a **list** of palm rest objects (same as `case_results.palm_rests`). Present only if
   at least one palm rest is defined.

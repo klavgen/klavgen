@@ -657,7 +657,7 @@ def render_case(
             controller_config = config.controller_config
 
             controller_holder = render_controller_holder(controller_config).translate(
-                (0, -case_config.case_thickness - controller_config.tolerance, 0)
+                (0, -case_config.case_thickness - controller_config.horizontal_tolerance, 0)
             )
 
             controller_lr = LocationOrientation(
@@ -675,7 +675,7 @@ def render_case(
             trrs_jack_config = config.trrs_jack_config
 
             trrs_jack_holder = render_trrs_jack_holder(trrs_jack_config).translate(
-                (0, -case_config.case_thickness - trrs_jack_config.tolerance, 0)
+                (0, -case_config.case_thickness - trrs_jack_config.horizontal_tolerance, 0)
             )
 
             trrs_jack_lr = LocationOrientation(

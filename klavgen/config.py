@@ -624,29 +624,23 @@ class ChocSwitchHolderConfig(MXSwitchHolderConfig):
 @dataclass
 class SideHolderConfig:
     item_width: float
-
     item_depth: float
+
     back_support_depth: float
 
-    holder_height: float
-
-    holder_hole_width: float
     case_hole_width: float
 
-    holder_hole_start_z: float
+    holder_bracket_depth: float = 1.4
+    holder_bracket_width: float = 2
 
-    front_support_depth: float = 1.4
+    holder_hole_width: float = 5.3
 
     side_supports_width: float = 1
-    rail_width: float = 2
-
-    # item_width_tolerance: float = 0.1
-    # item_depth_tolerance: float = 0.1
 
     case_tile_margin: float = 7
 
     case_hole_start_from_case_bottom: float = 0.0
-    case_hole_depth_in_front_of_wall: float = 1.4
+    case_hole_depth_in_front_of_case_wall: float = 1.4
     case_hole_clearance_depth: float = 10.0
 
     rail_wall_width: float = 0.8
@@ -654,40 +648,26 @@ class SideHolderConfig:
 
     rail_width_inset: float = 0.2
 
-    rail_latch_depth: float = 0.2
-    rail_latch_hole_depth: float = 0.3
-    rail_latch_base_height: float = 1.6
-    rail_latch_base_width: float = 1.2
-
-    rail_latch_tip_height: float = 0.8
-
-    rail_latch_offset_from_side: float = 0.4
-
-    tolerance: float = 0.15
+    horizontal_tolerance: float = 0.15
+    vertical_tolerance: float = 0.2
 
     def __post_init__(self):
         self.base_width = self.item_width + 2 * self.side_supports_width
-        self.width = self.base_width + 2 * self.rail_width
-        self.depth = self.item_depth + self.front_support_depth + self.back_support_depth
-        self.holder_rail_width = self.rail_width - self.rail_width_inset
-        self.rail_latch_tip_width = self.rail_latch_base_width - 2 * self.rail_latch_depth
-        self.rail_latch_offset_from_bottom: float = (
-            self.holder_height / 2 - self.rail_latch_base_height / 2
-        )
+        self.width = self.base_width + 2 * self.holder_bracket_width
+        self.depth = self.holder_bracket_depth + self.item_depth + self.back_support_depth
+        self.rail_width = self.holder_bracket_width - self.rail_width_inset
 
 
 @dataclass
 class ControllerConfig(SideHolderConfig):
     item_width: float = 18
 
-    item_depth: float = 33
+    item_depth: float = 33  # 35 usbc / 33 microusb
     back_support_depth: float = 1.4
-
-    holder_hole_width: float = 8.8
-    holder_hole_start_z: float = 1.6
 
     case_hole_width: float = 18
 
+    jack_width: float = 8.8  # 9.5 usbc / 8.8 microusb
     holder_height: float = 4.7
 
 
@@ -697,9 +677,6 @@ class TrrsJackConfig(SideHolderConfig):
 
     item_depth: float = 12
     back_support_depth: float = 2
-
-    holder_hole_width: float = 5.3
-    holder_hole_start_z: float = 0
 
     case_hole_width: float = 10
 
@@ -718,27 +695,17 @@ class TrrsJackConfig(SideHolderConfig):
 
 @dataclass
 class USBCJackConfig(SideHolderConfig):
-    item_width: float = 9
+    item_width: float = 9.2
+    item_depth: float = 2.9
 
-    item_depth: float = 14.5
-    back_support_depth: float = 1
+    side_supports_width: float = 1.5
+    back_support_depth: float = 0
 
-    holder_hole_width: float = 9
-    holder_hole_start_z: float = 1
+    case_hole_width: float = 11
 
-    case_hole_width: float = 9
+    base_height: float = 1.8
 
-    holder_height: float = 4.2
-
-    item_height: float = 3.2
-
-    metal_part_depth: float = 7
-
-    stopper_depth: float = 1.2
-    # stopper_width: float = 0.8
-
-    top_lip_width: float = 0.3
-    top_lip_height: float = 0.5
+    jack_height: float = 3.6
 
 
 @dataclass

@@ -66,7 +66,7 @@ def render_key(
     # that are unrealistically close
     keycap_clearance = position(templates.keycap_clearance, key)
 
-    # The whole for the switch assembly
+    # The hole for the switch assembly
     switch_hole = templates.switch_hole
     if not config.north_facing:
         switch_hole = switch_hole.rotate((0, 0, 0), (0, 0, 1), 180)
