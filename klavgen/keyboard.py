@@ -103,7 +103,7 @@ def render_and_save_keyboard(
     palm_rests = None
     connector = None
     if case_result.palm_rests:
-        connector = render_connector(config.case_config)
+        connector = render_connector(config)
         palm_rests = case_result.palm_rests
 
         export_connector_to_stl(connector)

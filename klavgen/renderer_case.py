@@ -406,9 +406,9 @@ def render_case(
             result.palm_rests_after_fillet = []
             result.palm_rests = []
 
-            connector_template = render_connector(case_config)
-            connector_cutout_template = render_connector_cutout(case_config)
-            case_connector_support_template = render_case_connector_support(case_config)
+            connector_template = render_connector(config)
+            connector_cutout_template = render_connector_cutout(config)
+            case_connector_support_template = render_case_connector_support(config)
 
             for palm_rest_tuple in zip(rendered_palm_rests, palm_rests):
                 palm_rest_before_case_clearance, palm_rest = palm_rest_tuple
