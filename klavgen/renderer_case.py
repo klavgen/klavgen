@@ -656,7 +656,7 @@ def render_case(
         if controller:
             controller_config = config.controller_config
 
-            controller_holder = render_controller_holder(controller_config).translate(
+            controller_holder = render_controller_holder(config).translate(
                 (0, -case_config.case_thickness - controller_config.horizontal_tolerance, 0)
             )
 

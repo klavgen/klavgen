@@ -1,8 +1,8 @@
 import cadquery as cq
 
 from .classes import Controller, RenderedSideHolder
-from .config import CaseConfig, ControllerConfig
-from .renderer_side_holder import render_side_case_hole_rail
+from .config import CaseConfig, Config, ControllerConfig
+from .renderer_side_holder import render_side_case_hole_rail, render_side_mount_bracket
 from .utils import grow_yz
 
 
@@ -14,129 +14,113 @@ def render_controller_case_cutout_and_support(
     return render_side_case_hole_rail(controller, config, case_config)
 
 
-def render_controller_holder(config: ControllerConfig = ControllerConfig()):
+def render_controller_holder(config: Config = Config()):
+    c_config = config.controller_config
+
     wp = cq.Workplane("XY")
     wp_yz = cq.Workplane("YZ")
 
-    # Base
-    base_center_width = 8
-    base_height = 0.4
-    base_side_width = 0.5
-    base_front_depth = 2
-    base_back_depth = 0.4
+    # Mount bracket
 
-    # PCB lips
-    pcb_lips_start_height_from_pcb_bottom = 1.2
-    pcb_lips_height = 1
-    pcb_lips_depth = 0.2
-    pcb_lips_front_side_margin = 1
-    pcb_lips_back_width = 10.6
+    holder = render_side_mount_bracket(
+        config=config, side_holder_config=c_config, fill_case_wall_hole=False
+    )
 
-    # USB port hole
-    usb_port_hole_start_height_from_pcb_bottom = 1.2
+    # Side and back supports wrapper
 
-    # Calculated
-    pcb_width = config.item_width  # + 2 * config.item_width_tolerance
-    pcb_depth = config.item_depth  # + 2 * config.item_depth_tolerance
+    sides_and_back_support_height = (
+        c_config.base_height + c_config.pcb_lips_z_from_pcb_bottom + c_config.pcb_lips_height
+    )
 
-    # Base
+    side_back_supports_wp = wp.center(0, c_config.holder_bracket_depth)
 
-    holder = wp.box(
-        pcb_width + 2 * config.side_supports_width,
-        pcb_depth + config.holder_bracket_depth + config.back_support_depth,
-        base_height,
+    side_back_supports_outer_perimeter = side_back_supports_wp.box(
+        c_config.item_width + 2 * c_config.side_supports_width,
+        c_config.item_depth + c_config.back_support_depth,
+        sides_and_back_support_height,
         centered=grow_yz,
     )
 
-    base_hole_width = pcb_width / 2 - base_side_width - base_center_width / 2
-    base_hole_depth = pcb_depth - base_front_depth - base_back_depth
+    holder = holder.union(side_back_supports_outer_perimeter)
 
-    base_hole_left = wp.center(
-        -base_center_width / 2 - base_hole_width,
-        config.holder_bracket_depth + base_front_depth,
-    ).box(base_hole_width, base_hole_depth, base_height, centered=False)
+    # PCB hole
 
-    base_hole_right = wp.center(
-        base_center_width / 2, config.holder_bracket_depth + base_front_depth
-    ).box(base_hole_width, base_hole_depth, base_height, centered=False)
-
-    holder = holder.cut(base_hole_left).cut(base_hole_right)
-
-    # Front support
-    front_support = wp.box(
-        config.width, config.holder_bracket_depth, config.holder_height, centered=grow_yz
+    pcb_hole = side_back_supports_wp.workplane(offset=c_config.base_height).box(
+        c_config.item_width,
+        c_config.item_depth,
+        sides_and_back_support_height,
+        centered=grow_yz,
     )
 
-    holder = holder.union(front_support)
+    holder = holder.cut(pcb_hole)
 
-    # PCB lips
+    # Base holes
+
+    base_hole_width = (
+        c_config.item_width / 2 - c_config.base_side_width - c_config.base_center_width / 2
+    )
+    base_hole_depth = c_config.item_depth - c_config.base_front_depth - c_config.base_back_depth
+
+    base_hole_left = wp.center(
+        -c_config.base_center_width / 2 - base_hole_width,
+        c_config.holder_bracket_depth + c_config.base_front_depth,
+    ).box(base_hole_width, base_hole_depth, c_config.base_height, centered=False)
+
+    holder = holder.cut(base_hole_left)
+
+    base_hole_right = wp.center(
+        c_config.base_center_width / 2, c_config.holder_bracket_depth + c_config.base_front_depth
+    ).box(base_hole_width, base_hole_depth, c_config.base_height, centered=False)
+
+    holder = holder.cut(base_hole_right)
+
+    # Front PCB lips
 
     front_pcb_lips = (
-        wp_yz.workplane(offset=-pcb_width / 2 + pcb_lips_front_side_margin)
+        wp_yz.workplane(offset=-c_config.item_width / 2 + c_config.pcb_lips_front_side_inset)
         .center(
-            config.holder_bracket_depth,
-            base_height + pcb_lips_start_height_from_pcb_bottom,
+            c_config.holder_bracket_depth,
+            c_config.base_height + c_config.pcb_lips_z_from_pcb_bottom,
         )
-        .lineTo(pcb_lips_depth, pcb_lips_depth)
-        .lineTo(pcb_lips_depth, pcb_lips_height - pcb_lips_depth)
-        .lineTo(0, pcb_lips_height)
+        .lineTo(c_config.pcb_lips_depth, c_config.pcb_lips_depth)
+        .lineTo(c_config.pcb_lips_depth, c_config.pcb_lips_height - c_config.pcb_lips_depth)
+        .lineTo(0, c_config.pcb_lips_height)
         .close()
-        .extrude(pcb_width - 2 * pcb_lips_front_side_margin)
+        .extrude(c_config.item_width - 2 * c_config.pcb_lips_front_side_inset)
     )
 
     holder = holder.union(front_pcb_lips)
 
+    # Back PCB lips
+
     back_pcb_lips = (
-        wp_yz.workplane(offset=-pcb_lips_back_width / 2)
+        wp_yz.workplane(offset=-c_config.pcb_lips_back_width / 2)
         .center(
-            config.holder_bracket_depth + pcb_depth,
-            base_height + pcb_lips_start_height_from_pcb_bottom,
+            c_config.holder_bracket_depth + c_config.item_depth,
+            c_config.base_height + c_config.pcb_lips_z_from_pcb_bottom,
         )
-        .lineTo(-pcb_lips_depth, pcb_lips_depth)
-        .lineTo(-pcb_lips_depth, pcb_lips_height - pcb_lips_depth)
-        .lineTo(0, pcb_lips_height)
+        .lineTo(-c_config.pcb_lips_depth, c_config.pcb_lips_depth)
+        .lineTo(-c_config.pcb_lips_depth, c_config.pcb_lips_height - c_config.pcb_lips_depth)
+        .lineTo(0, c_config.pcb_lips_height)
         .close()
-        .extrude(pcb_lips_back_width)
+        .extrude(c_config.pcb_lips_back_width)
     )
 
     holder = holder.union(back_pcb_lips)
 
-    # Side and back supports
-    sides_and_back_support_height = (
-        base_height + pcb_lips_start_height_from_pcb_bottom + pcb_lips_height
-    )
-
-    side_back_supports_outer_shape = wp.box(
-        pcb_width + 2 * config.side_supports_width,
-        pcb_depth + config.holder_bracket_depth + config.back_support_depth,
-        sides_and_back_support_height,
-        centered=grow_yz,
-    )
-
-    side_back_supports_inner_shape = wp.box(
-        pcb_width,
-        pcb_depth + config.holder_bracket_depth,
-        sides_and_back_support_height,
-        centered=grow_yz,
-    )
-
-    side_back_supports = side_back_supports_outer_shape.cut(side_back_supports_inner_shape)
-
-    holder = holder.union(side_back_supports)
-
     # USB port hole on front
     usb_port_hole = wp.workplane(
-        offset=base_height + usb_port_hole_start_height_from_pcb_bottom
+        offset=c_config.base_height + c_config.usb_port_hole_start_height_from_pcb_bottom
     ).box(
-        config.jack_width,
-        config.holder_bracket_depth + pcb_lips_depth,
-        config.holder_height,
+        c_config.usb_port_hole_width,
+        c_config.holder_bracket_depth + c_config.pcb_lips_depth,
+        config.case_config.case_inner_height,
         centered=grow_yz,
     )
 
     holder = holder.cut(usb_port_hole)
 
-    # Rotate 180 degrees to orient so USB port is on the back
+    # Rotate 180 degrees around Z so USB port is on the back
     holder = holder.rotate((0, 0, 0), (0, 0, 1), 180)
 
     return holder

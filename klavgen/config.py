@@ -667,8 +667,23 @@ class ControllerConfig(SideHolderConfig):
 
     case_hole_width: float = 18
 
-    jack_width: float = 8.8  # 9.5 usbc / 8.8 microusb
-    holder_height: float = 4.7
+    # Base
+    base_height: float = 0.4
+    base_center_width: float = 8
+    base_side_width: float = 0.5
+    base_front_depth: float = 2
+    base_back_depth: float = 0.4
+
+    # PCB lips
+    pcb_lips_front_side_inset: float = 1
+    pcb_lips_z_from_pcb_bottom: float = 1.2
+    pcb_lips_height: float = 1
+    pcb_lips_depth: float = 0.2
+    pcb_lips_back_width: float = 10.6
+
+    # USB port hole
+    usb_port_hole_start_height_from_pcb_bottom: float = 1.2
+    usb_port_hole_width: float = 8.8  # 9.5 usbc / 8.8 microusb
 
 
 @dataclass
