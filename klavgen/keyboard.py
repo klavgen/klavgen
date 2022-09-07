@@ -92,7 +92,7 @@ def render_and_save_keyboard(
 
     controller_holder = None
     if controller:
-        controller_holder = render_controller_holder(config.controller_config)
+        controller_holder = render_controller_holder(config)
         export_controller_holder_to_stl(controller_holder)
 
     trrs_jack_holder = None
