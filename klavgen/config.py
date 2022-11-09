@@ -660,15 +660,15 @@ class SideHolderConfig:
 
 @dataclass
 class ControllerConfig(SideHolderConfig):
-    item_width: float = 18
+    item_width: float = 18.2
 
-    item_depth: float = 33  # 35 usbc / 33 microusb
+    item_depth: float = 33.4  # 35.2 usbc / 33.4 microusb
     back_support_depth: float = 1.4
 
     case_hole_width: float = 18
 
     # Base
-    base_height: float = 0.4
+    base_height: float = 1.0
     base_center_width: float = 8
     base_side_width: float = 0.5
     base_front_depth: float = 2
@@ -683,7 +683,7 @@ class ControllerConfig(SideHolderConfig):
 
     # USB port hole
     usb_port_hole_start_height_from_pcb_bottom: float = 1.2
-    usb_port_hole_width: float = 8.8  # 9.5 usbc / 8.8 microusb
+    usb_port_hole_width: float = 9.0  # 10.0 usbc / 9.0 microusb
 
 
 @dataclass
