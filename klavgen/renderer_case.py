@@ -19,7 +19,7 @@ from .classes import (
     Text,
     TrrsJack,
 )
-from .config import Config
+from .config import Config, SwitchType
 from .renderer_connector import (
     render_case_connector_support,
     render_connector,
@@ -46,6 +46,7 @@ class RenderCaseResult:
     keys: Optional[List[Key]] = (None,)
     switch_holes: Any = None
     fused_switch_holders: Any = None
+    fused_switch_holder_clearances: Any = None
     screw_hole_rims: Any = None
     patches: Any = None
     cuts: Any = None
@@ -69,6 +70,7 @@ class RenderCaseResult:
     case_with_rests_before_fillet: Any = None
     bottom_before_fillet: Any = None
     bottom: Any = None
+    switch_holders: Any = None
     debug: Any = None
     standard_components: Any = None
     components: Optional[Dict[str, Dict[str, List[Any]]]] = None
@@ -229,6 +231,10 @@ def render_case(
     result.switch_holes = union_list([rk.switch_hole for rk in rendered_keys])
 
     result.fused_switch_holders = union_list([rk.fused_switch_holder for rk in rendered_keys])
+
+    result.fused_switch_holder_clearances = union_list(
+        [rk.fused_switch_holder_clearance for rk in rendered_keys]
+    )
 
     for screw_hole in rendered_screw_holes:
         result.switch_holes = result.switch_holes.union(screw_hole.hole)
@@ -540,8 +546,8 @@ def render_case(
 
     result.top = result.top.cut(result.switch_holes).clean()
 
-    if result.fused_switch_holders:
-        result.top = result.top.union(result.fused_switch_holders)
+    # if result.fused_switch_holders:
+    #     result.top = result.top.union(result.fused_switch_holders)
 
     # Debugs
     if switch_debug:
@@ -572,8 +578,19 @@ def render_case(
     if cuts:
         result.bottom = result.bottom.cut(cuts)
 
+    result.switch_holders = None
+    if result.fused_switch_holders:
+        if result.fused_switch_holder_clearances:
+            result.switch_holders = result.fused_switch_holders.cut(
+                result.fused_switch_holder_clearances
+            )
+        else:
+            result.switch_holders = result.fused_switch_holders
+
     if result.shell_cut:
         result.bottom = result.bottom.cut(result.shell_cut)
+        if result.switch_holders:
+            result.switch_holders = result.switch_holders.intersect(result.shell_cut)
 
     if result.controller_hole:
         result.bottom = result.bottom.cut(result.controller_hole)
@@ -594,6 +611,9 @@ def render_case(
         ).split(keepBottom=True)
 
         result.bottom = result.bottom.union(result.screw_hole_rims_bottom)
+
+        if result.switch_holders:
+            result.switch_holders = result.switch_holders.cut(result.screw_hole_rims)
 
     additions = union_list(stage_rendered_components[RenderingPipelineStage.AFTER_SHELL_ADDITIONS])
     if additions:
@@ -639,7 +659,7 @@ def render_case(
 
     if render_standard_components:
         # Add switch holders
-        if case_config.use_switch_holders:
+        if case_config.use_switch_holders and case_config.switch_type == SwitchType.MX:
             switch_holder_template = render_switch_holder(
                 config, orient_for_printing=False
             ).switch_holder
@@ -733,12 +753,17 @@ def get_y_at_x_intersection(obj, x, highest_y=True):
 def export_case_to_stl(result: RenderCaseResult):
     cq.exporters.export(result.top, "keyboard_top.stl")
     cq.exporters.export(result.bottom, "keyboard_bottom.stl")
+
     if result.palm_rests:
         if len(result.palm_rests) == 1:
             cq.exporters.export(result.palm_rests[0], f"palm_rest.stl")
         else:
             for index, palm_rest in enumerate(result.palm_rests):
                 cq.exporters.export(palm_rest, f"palm_rest_{index}.stl")
+
+    if result.switch_holders:
+        switch_holders_oriented = result.switch_holders.rotate((0, 0, 0), (0, 1, 0), 180)
+        cq.exporters.export(switch_holders_oriented, "switch_holders.stl")
 
 
 def export_case_to_step(result: RenderCaseResult):

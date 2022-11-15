@@ -10,14 +10,16 @@ def render_side_case_hole_rail(
 ) -> RenderedSideHolder:
     base_wp = create_workplane(lr)
 
-    # We want the user coordinates to be at the point of exit from the case (before the wall), however we want to draw
-    # from back of controller, so move center
-    base_wp = base_wp.center(0, -case_config.case_thickness - config.depth)
+    # We want the user coordinates to be at the point of exit from the case. We want to draw from the back of the
+    # controller, so move the center
+    # base_wp = base_wp.center(0, -case_config.case_thickness - config.depth)
+
+    total_depth = case_config.case_thickness + config.horizontal_tolerance + config.depth
 
     # Case column (full-height), only adding margin to the back, not the front (where we have to add the case thickness)
     case_column = (
         base_wp.workplane(offset=-case_config.case_base_height)
-        .center(0, -config.case_tile_margin)
+        .center(0, -total_depth - config.case_tile_margin)
         .box(
             config.width + 2 * config.rail_wall_width + 2 * config.case_tile_margin,
             config.depth + config.case_tile_margin + case_config.case_thickness,
@@ -31,7 +33,7 @@ def render_side_case_hole_rail(
         base_wp.workplane(
             offset=-case_config.case_base_height + config.case_hole_start_from_case_bottom
         )
-        .center(0, config.depth - config.case_hole_depth_in_front_of_case_wall)
+        .center(0, -case_config.case_thickness - config.case_hole_depth_in_front_of_case_wall)
         .box(
             config.case_hole_width,
             config.case_hole_clearance_depth,
@@ -45,7 +47,7 @@ def render_side_case_hole_rail(
     # Left rail
     rail_wp = base_wp.workplane(
         offset=-case_config.case_base_height + case_config.case_thickness
-    ).center(0, config.depth)
+    ).center(0, -case_config.case_thickness)
 
     rail_left = (
         rail_wp.center(-config.rail_wall_width - config.width / 2 - config.horizontal_tolerance, 0)
@@ -80,14 +82,14 @@ def render_side_case_hole_rail(
     # Debug: outline in the air
     debug = (
         base_wp.workplane(offset=5)
-        .center(0, config.depth / 2)
+        .center(0, -total_depth / 2)
         .rect(
             config.width + 2 * config.horizontal_tolerance + 2 * config.rail_wall_width,
-            config.depth,
+            total_depth,
         )
         .rect(
             config.width + 2 * config.horizontal_tolerance + 2 * config.rail_wall_width - 1,
-            config.depth - 1,
+            total_depth - 1,
         )
         .extrude(1)
     )

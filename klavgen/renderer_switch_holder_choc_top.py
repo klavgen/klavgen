@@ -4,6 +4,7 @@ import cadquery as cq
 
 from .classes import RenderedSwitchHolder
 from .config import ChocSwitchHolderConfig, MXSwitchHolderConfig
+from .utils import grow_z
 
 
 def render_new_choc_switch_holder(socket, cf: ChocSwitchHolderConfig) -> RenderedSwitchHolder:
@@ -43,6 +44,21 @@ def render_new_choc_switch_holder(socket, cf: ChocSwitchHolderConfig) -> Rendere
     )
     holder = base
 
+    # Margin
+
+    back_height_decrease = 0.6
+
+    margin_size = 5
+
+    margin = wp.workplane(offset=back_height_decrease).box(
+        key_cf.switch_hole_width + 2 * margin_size,
+        key_cf.switch_hole_depth + 2 * margin_size,
+        socket_cf.socket_bump_height + wall_height - back_height_decrease,
+        centered=grow_z,
+    )
+
+    holder = holder.union(margin)
+
     # Switch hole
     switch_hole = (
         wp.workplane(offset=socket_cf.socket_bump_height)
@@ -79,7 +95,6 @@ def render_new_choc_switch_holder(socket, cf: ChocSwitchHolderConfig) -> Rendere
     holder = holder.cut(diode)
 
     # Back vertical cutout to decrease the base height
-    back_height_decrease = 0.6
     back_height_decrease_start_y = 1.2
     back_components_height = components_height + back_height_decrease
 
@@ -136,15 +151,28 @@ def render_new_choc_switch_holder(socket, cf: ChocSwitchHolderConfig) -> Rendere
     plastic_pin_holes = render_switch_plastic_pin_holes(cf)
     holder = holder.cut(plastic_pin_holes)
 
+    # Render switch bottom hole that's used to cut the margin
+    # switch_hole = wp.box(
+    #     key_cf.switch_hole_width,
+    #     key_cf.switch_hole_depth,
+    #     wall_height,
+    #     centered=grow_z,
+    # )
+
+    clearance = switch_hole.union(plastic_pin_holes).union(socket_sweep)
+
     # Move in place
     holder = holder.translate(
+        (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_thickness)
+    )
+    clearance = clearance.translate(
         (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_thickness)
     )
     socket = socket.translate(
         (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_thickness)
     )
 
-    return RenderedSwitchHolder(holder, socket)
+    return RenderedSwitchHolder(holder, clearance, socket)
 
 
 def render_wrapper_new(width, depth, narrow_width, narrow_depth, base_height, wrapper_height):

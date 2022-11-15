@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 from .classes import Controller, Cut, Key, PalmRest, Patch, ScrewHole, Text, TrrsJack
-from .config import Config
+from .config import Config, SwitchType
 from .renderer_case import RenderCaseResult, export_case_to_stl, render_case
 from .renderer_connector import export_connector_to_stl, render_connector
 from .renderer_controller import export_controller_holder_to_stl, render_controller_holder
@@ -85,7 +85,7 @@ def render_and_save_keyboard(
     export_case_to_stl(case_result)
 
     switch_holder = None
-    if config.case_config.use_switch_holders:
+    if config.case_config.use_switch_holders and config.case_config.switch_type == SwitchType.MX:
         switch_holder_result = render_switch_holder(config)
         export_switch_holder_to_stl(switch_holder_result)
         switch_holder = switch_holder_result.switch_holder

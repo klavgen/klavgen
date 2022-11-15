@@ -17,6 +17,10 @@ class LocationOrientation:
 class Key(LocationOrientation):
     keycap_width: Optional[float] = None
     keycap_depth: Optional[float] = None
+    case_tile_margin_back: Optional[float] = None
+    case_tile_margin_right: Optional[float] = None
+    case_tile_margin_front: Optional[float] = None
+    case_tile_margin_left: Optional[float] = None
 
 
 @dataclass
@@ -27,6 +31,7 @@ class RenderedKey:
     keycap_clearance: Any
     switch_hole: Any
     fused_switch_holder: Any
+    fused_switch_holder_clearance: Any
     debug: Any
 
 
@@ -36,6 +41,7 @@ class RenderedKeyTemplates:
     case_clearance: Any
     keycap_clearance: Any
     fused_switch_holder: Any
+    fused_switch_holder_clearance: Any
 
 
 @dataclass
@@ -105,4 +111,5 @@ class PalmRest:
 @dataclass
 class RenderedSwitchHolder:
     switch_holder: Any
+    switch_holder_clearance: Any
     socket: Any

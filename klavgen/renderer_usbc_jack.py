@@ -1,7 +1,7 @@
 import cadquery as cq
 
 from .classes import LocationOrientation, USBCJack
-from .config import Config, SideHolderConfig, USBCJackConfig
+from .config import Config
 from .renderer_side_holder import render_side_case_hole_rail, render_side_mount_bracket
 from .rendering import (
     RENDERERS,
@@ -64,7 +64,7 @@ def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True)
     case_config = config.case_config
     back_wrapper = wp.center(0, usbc_jack_config.holder_bracket_depth).box(
         usbc_jack_config.base_width,
-        usbc_jack_config.item_depth,
+        usbc_jack_config.holder_depth_behind_bracket,
         case_config.case_inner_height - usbc_jack_config.vertical_tolerance,
         centered=grow_yz,
     )
@@ -78,7 +78,7 @@ def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True)
         case_config.case_thickness
         + config.usbc_jack_config.horizontal_tolerance
         + usbc_jack_config.holder_bracket_depth
-        + usbc_jack_config.item_depth
+        + usbc_jack_config.holder_depth_behind_bracket
     )
 
     jack_center = jack_wp.box(

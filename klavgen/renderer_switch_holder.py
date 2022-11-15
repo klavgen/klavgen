@@ -16,6 +16,7 @@ def render_switch_hole(case_config: CaseConfig, config: MXSwitchHolderConfig):
     switch_hole = wp.box(
         config.key_config.switch_hole_width,
         config.key_config.switch_hole_depth,
+        # TODO: fix this for when we are not using holders
         config.switch_hole_min_height,
         centered=grow_z,
     )
@@ -90,11 +91,11 @@ def render_choc_switch_holder(
     wp = cq.Workplane("XY")
     socket = draw_choc_socket(wp, config)
     return render_new_choc_switch_holder(socket, config.switch_holder_choc_config)
-    return _render_switch_holder(
-        socket=socket,
-        cf=config.switch_holder_choc_config,
-        orient_for_printing=orient_for_printing,
-    )
+    # return _render_switch_holder(
+    #     socket=socket,
+    #     cf=config.switch_holder_choc_config,
+    #     orient_for_printing=orient_for_printing,
+    # )
 
 
 def _render_switch_holder(
@@ -179,7 +180,7 @@ def _render_switch_holder(
             centered=False,
         )
     )
-    # holder = holder.union(socket_locking_lip)
+    holder = holder.union(socket_locking_lip)
 
     # Diode wire front hole
     if cf.reverse_diode_and_col_wire:
@@ -199,7 +200,7 @@ def _render_switch_holder(
         cf.socket_base_height + socket_cf.socket_height,
         centered=False,
     )
-    # holder = holder.cut(diode_wire_front_hole)
+    holder = holder.cut(diode_wire_front_hole)
 
     # Col wire front wrapping post
     if cf.reverse_diode_and_col_wire:
@@ -227,7 +228,7 @@ def _render_switch_holder(
         cf.socket_base_height + socket_cf.socket_height,
         centered=False,
     )
-    # holder = holder.cut(col_wire_front_wrapper_cutout_narrow)
+    holder = holder.cut(col_wire_front_wrapper_cutout_narrow)
 
     col_wire_front_wrapper_cutout_wide = (
         wp.center(diode_wire_front_hole_wide_start_x, -cf.holder_depth / 2)
@@ -239,34 +240,11 @@ def _render_switch_holder(
             centered=False,
         )
     )
-    # holder = holder.cut(col_wire_front_wrapper_cutout_wide)
+    holder = holder.cut(col_wire_front_wrapper_cutout_wide)
 
     # Top lips
-    # top_lips = render_top_lips(cf, case_config)
-    # holder = holder.union(top_lips)
-
-    # Right lip
-    holder_back_end_y = -cf.key_config.switch_hole_depth / 2 + cf.holder_lips_depth
-    holder_front_end_y = -cf.holder_depth / 2  # -cf.key_config.switch_hole_depth / 2 -
-    right_lip = (
-        wp.center(-cf.holder_width / 2, -cf.holder_depth / 2)
-        .workplane(offset=cf.holder_bottom_height)
-        .box(
-            cf.holder_side_bottom_wall_width,
-            cf.holder_lips_depth + cf.holder_front_wall_depth,
-            1,
-            centered=False,
-        )
-    )
-    holder = holder.union(right_lip)
-
-    # front lip
-    front_lip = (
-        wp.center(cf.key_config.switch_hole_width / 2 - 3, -cf.key_config.switch_hole_depth / 2 - 1)
-        .workplane(offset=cf.holder_bottom_height)
-        .box(1, 1, 1, centered=False)
-    )
-    holder = holder.union(front_lip)
+    top_lips = render_top_lips(cf, case_config)
+    holder = holder.union(top_lips)
 
     # Switch bottom hole
     switch_bottom_hole = (
@@ -308,28 +286,28 @@ def _render_switch_holder(
 
     # Row wire wrapping posts
 
-    # if cf.has_row_wire_wrappers:
-    #     row_wire_left_wrapper = (
-    #         wp_yz.workplane(offset=-cf.holder_width / 2)
-    #         .center(
-    #             cf.cutoff_y_before_back_wrappers_and_separator,
-    #             cf.holder_height - cf.row_wire_wrappers_offset_from_plate,
-    #         )
-    #         .lineTo(cf.back_wrappers_and_separator_depth, 0)
-    #         .lineTo(cf.back_wrappers_and_separator_depth, -cf.row_wire_wrappers_tip_height)
-    #         .lineTo(0, -cf.row_wire_wrappers_base_height)
-    #         .close()
-    #         .extrude(cf.holder_side_bottom_wall_width + cf.row_wire_wrapper_extra_width)
-    #     )
-    #
-    #     if cf.has_left_row_wire_wrapper:
-    #         holder = holder.union(row_wire_left_wrapper)
-    #
-    #     row_wire_right_wrapper = row_wire_left_wrapper.mirror(
-    #         mirrorPlane=cq.Workplane("YZ").plane.zDir,
-    #         basePointVector=cq.Workplane("YZ").val(),
-    #     )
-    #     holder = holder.union(row_wire_right_wrapper)
+    if cf.has_row_wire_wrappers:
+        row_wire_left_wrapper = (
+            wp_yz.workplane(offset=-cf.holder_width / 2)
+            .center(
+                cf.cutoff_y_before_back_wrappers_and_separator,
+                cf.holder_height - cf.row_wire_wrappers_offset_from_plate,
+            )
+            .lineTo(cf.back_wrappers_and_separator_depth, 0)
+            .lineTo(cf.back_wrappers_and_separator_depth, -cf.row_wire_wrappers_tip_height)
+            .lineTo(0, -cf.row_wire_wrappers_base_height)
+            .close()
+            .extrude(cf.holder_side_bottom_wall_width + cf.row_wire_wrapper_extra_width)
+        )
+
+        if cf.has_left_row_wire_wrapper:
+            holder = holder.union(row_wire_left_wrapper)
+
+        row_wire_right_wrapper = row_wire_left_wrapper.mirror(
+            mirrorPlane=cq.Workplane("YZ").plane.zDir,
+            basePointVector=cq.Workplane("YZ").val(),
+        )
+        holder = holder.union(row_wire_right_wrapper)
 
     # Separator between column and row wires
     if cf.reverse_diode_and_col_wire:
@@ -349,21 +327,21 @@ def _render_switch_holder(
             centered=False,
         )
     )
-    # holder = holder.union(col_row_separator)
+    holder = holder.union(col_row_separator)
 
     #
     # Col wire back wrapping post
     #
-    # col_wire_back_wrapper_additions, col_wire_back_wrapper_cutouts = render_col_wire_back_wrapper(
-    #     cf
-    # )
-    # holder = holder.union(col_wire_back_wrapper_additions).cut(col_wire_back_wrapper_cutouts)
+    col_wire_back_wrapper_additions, col_wire_back_wrapper_cutouts = render_col_wire_back_wrapper(
+        cf
+    )
+    holder = holder.union(col_wire_back_wrapper_additions).cut(col_wire_back_wrapper_cutouts)
 
     #
     # Diode holder
     #
     diode_holder_cutout = render_diode_holder_cutout(cf)
-    # holder = holder.cut(diode_holder_cutout)
+    holder = holder.cut(diode_holder_cutout)
 
     #
     # Central vertical cut
@@ -438,7 +416,7 @@ def _render_switch_holder(
             .extrude(cf.holder_total_height)
         )
 
-    # holder = holder.cut(vertical_cut)
+    holder = holder.cut(vertical_cut)
 
     #
     # Bottom back side cuts
@@ -451,7 +429,7 @@ def _render_switch_holder(
         + cf.holder_lips_depth
         + cf.back_side_cut_start_behind_lips,
     ).box(cf.back_side_cut_left_width, cf.holder_depth, cf.holder_height, centered=False)
-    # holder = holder.cut(bottom_back_cut_left)
+    holder = holder.cut(bottom_back_cut_left)
 
     # Right cut
     bottom_back_cut_right = wp.center(
@@ -460,98 +438,7 @@ def _render_switch_holder(
         + cf.holder_lips_depth
         + cf.back_side_cut_start_behind_lips,
     ).box(cf.back_side_cut_right_width, cf.holder_depth, cf.holder_height, centered=False)
-    # holder = holder.cut(bottom_back_cut_right)
-
-    y_back_trim = wp.center(0, holder_back_end_y).box(40, 40, 40, centered=grow_yz)
-    holder = holder.cut(y_back_trim)
-
-    y_front_trim = (
-        wp.workplane(offset=cf.holder_bottom_height)
-        .center(0, holder_front_end_y - 20)
-        .box(cf.key_config.switch_hole_width, 20, 40, centered=grow_yz)
-    )
-    # holder = holder.cut(y_front_trim)
-
-    # diode cuts
-    extra_cut_behind_pin = 0.4
-
-    cutouts_start_y = -cf.holder_depth / 2
-
-    diode_offset_from_socket = 1.5
-    diode_wire_right_support_width = 0.6
-
-    right_pin_back_end_y = (
-        socket_cf.socket_front_end_y
-        + socket_cf.right_depth
-        - socket_cf.pins_inset_depth
-        + extra_cut_behind_pin
-    )
-
-    diode_diam = 2  # 1.8
-    diode_length = 4  # 3.8
-    diode_wire_diam = 0.5
-    diode_cutout = wp.center(
-        socket_cf.socket_right_end_x + diode_offset_from_socket, right_pin_back_end_y
-    ).box(diode_length, diode_diam, diode_diam, centered=False)
-    holder = holder.cut(diode_cutout)
-
-    wire_start_y = right_pin_back_end_y + diode_diam / 2 + diode_wire_diam / 2
-    diode_wire_cutout = wp.center(socket_cf.socket_right_end_x, wire_start_y - 10).box(
-        10, 10, diode_diam, centered=False
-    )
-    holder = holder.cut(diode_wire_cutout)
-
-    col_wire_cutout = wp.center(
-        socket_cf.socket_right_end_x
-        + diode_offset_from_socket
-        + diode_length
-        + diode_wire_right_support_width,
-        -10,
-    ).box(10, 10, diode_diam, centered=False)
-    holder = holder.cut(col_wire_cutout)
-
-    # wrapper
-    wire_wrapper = render_col_wire_back_wrapper_additive(cf, False)
-    wire_wrapper = wire_wrapper.rotate((0, 0, 0), (0, 0, 1), 180)
-    # rotation brings it to the left of y axis
-
-    wrapper_protrude = 1.4
-    wrapper_protrude = 4.5
-    row_wire_wrapper = wire_wrapper.translate(
-        (cf.holder_width / 2 - 2, -cf.holder_depth / 2 - wrapper_protrude, 0)
-    )
-    holder = holder.union(row_wire_wrapper)
-
-    row_wire_clearance = wp.center(cf.holder_width / 2 - 2, holder_front_end_y).box(
-        2, holder_back_end_y - holder_front_end_y, cf.holder_bottom_height, centered=False
-    )
-    holder = holder.cut(row_wire_clearance)
-
-    # wrapper_protrude = 4
-    col_wire_wrapper = wire_wrapper.mirror(mirrorPlane="YZ").translate(
-        (
-            -cf.holder_width / 2 - 2,
-            -cf.holder_depth / 2 - wrapper_protrude,
-            0,
-        )
-    )
-    holder = holder.union(col_wire_wrapper)
-
-    col_wire_wrapper_base = (
-        wp.center(-cf.holder_width / 2 - 2, holder_front_end_y)
-        .workplane(
-            offset=cf.socket_base_height
-            + socket_cf.socket_height
-            + socket_cf.pin_top_clearance_height
-        )
-        .box(
-            2,
-            holder_back_end_y - holder_front_end_y,
-            socket_cf.socket_bump_height - socket_cf.pin_top_clearance_height,
-            centered=False,
-        )
-    )
-    holder = holder.union(col_wire_wrapper_base)
+    holder = holder.cut(bottom_back_cut_right)
 
     if orient_for_printing:
         holder = switch_holder_orient_and_center(holder, cf)
@@ -628,132 +515,93 @@ def render_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
     end_pin_cutouts_start_y = -cf.holder_depth / 2 + cf.front_wire_supports_depth
     socket_cutouts_start_y = cf.cutoff_base_y
 
-    socket_back_end_y = socket_cf.socket_front_end_y + socket_cf.socket_total_depth
-    extra_cut_behind_pin = 0.4
-
-    cutouts_start_y = -cf.holder_depth / 2
-
     cutouts = []
 
-    left_cutout = (
-        cq.Workplane("XY")
-        .center(socket_cf.socket_left_end_x - socket_cf.solder_pin_width, cutouts_start_y)
-        .box(
-            socket_cf.solder_pin_width,
-            socket_cf.socket_total_depth
-            - socket_cf.pins_inset_depth
-            + (socket_cf.socket_front_end_y - cutouts_start_y)
-            + extra_cut_behind_pin,
-            cf.holder_height_to_socket_pin_top,
-            centered=False,
-        )
+    # Left, end
+    left_side_end_angled_cutout = render_angled_side_cutout(
+        left_x=-cf.holder_width / 2,
+        right_x=socket_cf.socket_left_end_x - socket_cf.solder_pin_width,
+        front_y=end_pin_cutouts_start_y,
+        back_angled_top_y=cf.bottom_angled_cutout_right_end_top_y
+        if cf.reverse_diode_and_col_wire
+        else cf.bottom_angled_cutout_left_end_top_y,
+        cf=cf,
     )
 
-    cutouts.append(left_cutout)
+    if left_side_end_angled_cutout:
+        cutouts.append(left_side_end_angled_cutout)
 
-    right_cutout = (
-        cq.Workplane("XY")
-        .center(socket_cf.socket_right_end_x, cutouts_start_y)
-        .box(
-            socket_cf.solder_pin_width,
-            socket_cf.right_depth
-            - socket_cf.pins_inset_depth
-            + (socket_cf.socket_front_end_y - cutouts_start_y)
-            + extra_cut_behind_pin,
-            cf.holder_height_to_socket_pin_top,
-            centered=False,
-        )
+    # Left, pin
+    left_side_pin_angled_cutout = render_angled_side_cutout(
+        left_x=socket_cf.socket_left_end_x - socket_cf.solder_pin_width,
+        right_x=socket_cf.socket_left_end_x,
+        front_y=end_pin_cutouts_start_y,
+        back_angled_top_y=cf.bottom_angled_cutout_right_socket_top_y
+        if cf.reverse_diode_and_col_wire
+        else cf.bottom_angled_cutout_left_socket_top_y,
+        cf=cf,
     )
 
-    cutouts.append(right_cutout)
+    if left_side_pin_angled_cutout:
+        cutouts.append(left_side_pin_angled_cutout)
 
-    ###
+    # Left, socket
+    left_socket_pin_angled_cutout = render_angled_side_cutout(
+        left_x=socket_cf.socket_left_end_x,
+        right_x=socket_bumps_midpoint_x,
+        front_y=socket_cutouts_start_y,
+        back_angled_top_y=cf.bottom_angled_cutout_right_socket_top_y
+        if cf.reverse_diode_and_col_wire
+        else cf.bottom_angled_cutout_left_socket_top_y,
+        cf=cf,
+        to_pin_top=False,
+    )
 
-    # # Left, end
-    # left_side_end_angled_cutout = render_angled_side_cutout(
-    #     left_x=-cf.holder_width / 2,
-    #     right_x=socket_cf.socket_left_end_x - socket_cf.solder_pin_width,
-    #     front_y=end_pin_cutouts_start_y,
-    #     back_angled_top_y=cf.bottom_angled_cutout_right_end_top_y
-    #     if cf.reverse_diode_and_col_wire
-    #     else cf.bottom_angled_cutout_left_end_top_y,
-    #     cf=cf,
-    # )
-    #
-    # if left_side_end_angled_cutout:
-    #     cutouts.append(left_side_end_angled_cutout)
+    if left_socket_pin_angled_cutout:
+        cutouts.append(left_socket_pin_angled_cutout)
 
-    # # Left, pin
-    # left_side_pin_angled_cutout = render_angled_side_cutout(
-    #     left_x=socket_cf.socket_left_end_x - socket_cf.solder_pin_width,
-    #     right_x=socket_cf.socket_left_end_x,
-    #     front_y=end_pin_cutouts_start_y,
-    #     back_angled_top_y=cf.bottom_angled_cutout_right_socket_top_y
-    #     if cf.reverse_diode_and_col_wire
-    #     else cf.bottom_angled_cutout_left_socket_top_y,
-    #     cf=cf,
-    # )
-    #
-    # if left_side_pin_angled_cutout:
-    #     cutouts.append(left_side_pin_angled_cutout)
-    #
-    # # Left, socket
-    # left_socket_pin_angled_cutout = render_angled_side_cutout(
-    #     left_x=socket_cf.socket_left_end_x,
-    #     right_x=socket_bumps_midpoint_x,
-    #     front_y=socket_cutouts_start_y,
-    #     back_angled_top_y=cf.bottom_angled_cutout_right_socket_top_y
-    #     if cf.reverse_diode_and_col_wire
-    #     else cf.bottom_angled_cutout_left_socket_top_y,
-    #     cf=cf,
-    #     to_pin_top=False,
-    # )
-    #
-    # if left_socket_pin_angled_cutout:
-    #     cutouts.append(left_socket_pin_angled_cutout)
-    #
-    # # Right, socket
-    # right_socket_pin_angled_cutout = render_angled_side_cutout(
-    #     left_x=socket_bumps_midpoint_x,
-    #     right_x=socket_cf.socket_right_end_x,
-    #     front_y=socket_cutouts_start_y,
-    #     back_angled_top_y=cf.bottom_angled_cutout_left_socket_top_y
-    #     if cf.reverse_diode_and_col_wire
-    #     else cf.bottom_angled_cutout_right_socket_top_y,
-    #     cf=cf,
-    #     to_pin_top=False,
-    # )
-    #
-    # if right_socket_pin_angled_cutout:
-    #     cutouts.append(right_socket_pin_angled_cutout)
-    #
-    # # Right, pin
-    # right_side_pin_angled_cutout = render_angled_side_cutout(
-    #     left_x=socket_cf.socket_right_end_x + 0.5,
-    #     right_x=socket_cf.socket_right_end_x + socket_cf.solder_pin_width,
-    #     front_y=end_pin_cutouts_start_y,
-    #     back_angled_top_y=cf.bottom_angled_cutout_left_socket_top_y
-    #     if cf.reverse_diode_and_col_wire
-    #     else cf.bottom_angled_cutout_right_socket_top_y,
-    #     cf=cf,
-    # )
-    #
-    # if right_side_pin_angled_cutout:
-    #     cutouts.append(right_side_pin_angled_cutout)
-    #
-    # # Right, end
-    # right_side_end_angled_cutout = render_angled_side_cutout(
-    #     left_x=socket_cf.socket_right_end_x + socket_cf.solder_pin_width,
-    #     right_x=cf.holder_width / 2,
-    #     front_y=end_pin_cutouts_start_y,
-    #     back_angled_top_y=cf.bottom_angled_cutout_left_end_top_y
-    #     if cf.reverse_diode_and_col_wire
-    #     else cf.bottom_angled_cutout_right_end_top_y,
-    #     cf=cf,
-    # )
-    #
-    # if right_side_end_angled_cutout:
-    #     cutouts.append(right_side_end_angled_cutout)
+    # Right, socket
+    right_socket_pin_angled_cutout = render_angled_side_cutout(
+        left_x=socket_bumps_midpoint_x,
+        right_x=socket_cf.socket_right_end_x,
+        front_y=socket_cutouts_start_y,
+        back_angled_top_y=cf.bottom_angled_cutout_left_socket_top_y
+        if cf.reverse_diode_and_col_wire
+        else cf.bottom_angled_cutout_right_socket_top_y,
+        cf=cf,
+        to_pin_top=False,
+    )
+
+    if right_socket_pin_angled_cutout:
+        cutouts.append(right_socket_pin_angled_cutout)
+
+    # Right, pin
+    right_side_pin_angled_cutout = render_angled_side_cutout(
+        left_x=socket_cf.socket_right_end_x,
+        right_x=socket_cf.socket_right_end_x + socket_cf.solder_pin_width,
+        front_y=end_pin_cutouts_start_y,
+        back_angled_top_y=cf.bottom_angled_cutout_left_socket_top_y
+        if cf.reverse_diode_and_col_wire
+        else cf.bottom_angled_cutout_right_socket_top_y,
+        cf=cf,
+    )
+
+    if right_side_pin_angled_cutout:
+        cutouts.append(right_side_pin_angled_cutout)
+
+    # Right, end
+    right_side_end_angled_cutout = render_angled_side_cutout(
+        left_x=socket_cf.socket_right_end_x + socket_cf.solder_pin_width,
+        right_x=cf.holder_width / 2,
+        front_y=end_pin_cutouts_start_y,
+        back_angled_top_y=cf.bottom_angled_cutout_left_end_top_y
+        if cf.reverse_diode_and_col_wire
+        else cf.bottom_angled_cutout_right_end_top_y,
+        cf=cf,
+    )
+
+    if right_side_end_angled_cutout:
+        cutouts.append(right_side_end_angled_cutout)
 
     return union_list(cutouts)
 
@@ -836,13 +684,10 @@ def render_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
         .close()
         .extrude(cf.holder_width)
     )
-    # lips = lips.cut(top_left_lip_side_cut)
+    lips = lips.cut(top_left_lip_side_cut)
 
     # Chamfer lip at the back for easier insertion
-    # lips = lips.edges(">Y and >Z and |X").chamfer(cf.holder_lips_chamfer_top)
-
-    # Chamfer lip at the front for easier insertion
-    lips = lips.edges("<Y and >Z and |X").chamfer(cf.holder_lips_chamfer_top)
+    lips = lips.edges(">Y and >Z and |X").chamfer(cf.holder_lips_chamfer_top)
 
     # Right lip is a mirror image of the left
     top_right_lip = lips.mirror(
@@ -867,7 +712,7 @@ def render_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
     # Chamfer front lip
     front_lip = front_lip.edges("<Y and >Z and |X").chamfer(cf.holder_lips_chamfer_top)
 
-    # lips = lips.union(front_lip)
+    lips = lips.union(front_lip)
 
     return lips
 

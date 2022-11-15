@@ -77,11 +77,12 @@ class CaseConfig:
     case_thickness: float = 2  # 2.4
 
     # Total height, including top and bottom thickness
-    # MX: 11 = 5 switch holder (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
+    # MX: 11 = 5 switch (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
     #   2 bottom thickness
-    # Choc: 9 = 2.4 switch holder/top thickness (incl buffer of 0.2) + 4.2 usbc socket (disregard 1.2 socket bumps + 1.8 socket) +
-    #   + 2.4 bottom thickness
-    case_base_height: float = 11  # 9
+    # Choc: 8.4 = the max of:
+    #   - Switch: 7.8 = 2.2 switch (incl top thickness of 2) + 0.6 buffer + 1.2 socket bumps + 1.8 socket + 2 bottom thickness
+    #   - USB holder: 8.4 = 2 top thickness + 4.4 usbc socket (3.6 hole + 0.8 on top & bottom) + 2 bottom thickness
+    case_base_height: float = 8.4  # 9
 
     # Global clearance height
     clearance_height: float = 100
@@ -732,7 +733,7 @@ class TrrsJackConfig(SideHolderConfig):
 @dataclass
 class USBCJackConfig(SideHolderConfig):
     item_width: float = 9.2
-    item_depth: float = 2.9
+    item_depth: float = 15.0  # 2.9
 
     side_supports_width: float = 1.5
     back_support_depth: float = 0
@@ -742,6 +743,7 @@ class USBCJackConfig(SideHolderConfig):
     base_height: float = 1.8
 
     jack_height: float = 3.6
+    holder_depth_behind_bracket: float = 2.9
 
 
 @dataclass
