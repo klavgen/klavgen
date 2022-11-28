@@ -4,7 +4,7 @@ config = Config(case_config=CaseConfig(switch_type=SwitchType.CHOC))
 
 keys = [Key(x=0, y=0)]
 
-screw_holes = [
+components = [
     ScrewHole(x=13, y=13),
     ScrewHole(x=13, y=-13),
     ScrewHole(x=-13, y=-13),
@@ -18,4 +18,4 @@ palm_rests = [
     ),
 ]
 
-case_result = render_case(keys=keys, palm_rests=palm_rests, screw_holes=screw_holes, config=config)
+case_result = render_case(keys=keys, components=components, palm_rests=palm_rests, config=config)

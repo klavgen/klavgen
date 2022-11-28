@@ -12,6 +12,7 @@ from . import (
     renderer_kailh_choc_socket,
     renderer_kailh_mx_socket,
     renderer_key,
+    renderer_screw_hole,
     renderer_switch_holder,
     renderer_switch_holder_choc,
     renderer_switch_holder_choc_bottom,
@@ -36,6 +37,7 @@ importlib.reload(renderer_controller)
 importlib.reload(renderer_kailh_mx_socket)
 importlib.reload(renderer_kailh_choc_socket)
 importlib.reload(renderer_key)
+importlib.reload(renderer_screw_hole)
 importlib.reload(renderer_switch_holder)
 importlib.reload(renderer_trrs_jack)
 importlib.reload(renderer_usbc_jack)

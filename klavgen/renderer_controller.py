@@ -37,7 +37,9 @@ def render_controller(controller: Controller, config: Config) -> RenderResult:
         name=controller.name or "controller",
         items=[
             RenderedItem(result.case_column, pipeline_stage=RenderingPipelineStage.CASE_SOLID),
-            RenderedItem(result.rail, pipeline_stage=RenderingPipelineStage.AFTER_SHELL_ADDITIONS),
+            RenderedItem(
+                result.rail, pipeline_stage=RenderingPipelineStage.BOTTOM_AFTER_SHELL_ADDITIONS
+            ),
             RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTOUTS),
             RenderedItem(
                 result.inner_clearance, pipeline_stage=RenderingPipelineStage.INNER_CLEARANCES

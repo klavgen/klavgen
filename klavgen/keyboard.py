@@ -26,7 +26,6 @@ class RenderKeyboardResult:
 
 def render_and_save_keyboard(
     keys: List[Key],
-    screw_holes: Optional[List[ScrewHole]] = None,
     components: Optional[List[Renderable]] = None,
     case_extras: Optional[List[Any]] = None,
     patches: Optional[List[Patch]] = None,
@@ -42,7 +41,6 @@ def render_and_save_keyboard(
     The core method that renders and saves as STL files all keyboard components.
 
     :param keys: A list of Key objects defining the key positions. Required.
-    :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
     :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
@@ -64,7 +62,6 @@ def render_and_save_keyboard(
 
     case_result = render_case(
         keys=keys,
-        screw_holes=screw_holes,
         components=components,
         patches=patches,
         cuts=cuts,

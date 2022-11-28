@@ -45,15 +45,15 @@ class RenderedKeyTemplates:
 
 
 @dataclass
-class ScrewHole:
-    x: float
-    y: float
-    z: float = 0
+class ScrewHole(Renderable, LocationOrientation):
+    name = "screw_hole"
+    render_func_name: str = "screw_hole"
 
 
 @dataclass
 class RenderedScrewHole:
     rim: Any
+    rim_bottom: Any
     rim_inner_clearance: Any
     hole: Any
     debug: Any

@@ -33,7 +33,9 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
         name=usbc_jack.name or "usbc_jack",
         items=[
             RenderedItem(result.case_column, pipeline_stage=RenderingPipelineStage.CASE_SOLID),
-            RenderedItem(result.rail, pipeline_stage=RenderingPipelineStage.AFTER_SHELL_ADDITIONS),
+            RenderedItem(
+                result.rail, pipeline_stage=RenderingPipelineStage.BOTTOM_AFTER_SHELL_ADDITIONS
+            ),
             RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTOUTS),
             RenderedItem(
                 result.inner_clearance, pipeline_stage=RenderingPipelineStage.INNER_CLEARANCES

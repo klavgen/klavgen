@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 import cadquery as cq
 
 from . import renderer_controller, renderer_trrs_jack
-from .classes import Cut, Key, LocationOrientation, PalmRest, Patch, Renderable, ScrewHole, Text
+from .classes import Cut, Key, LocationOrientation, PalmRest, Patch, Renderable, Text
 from .config import Config, SwitchType
 from .renderer_connector import (
     render_case_connector_support,
@@ -18,7 +18,6 @@ from .renderer_cut import render_cut
 from .renderer_key import render_key, render_key_templates
 from .renderer_palm_rest import render_palm_rest
 from .renderer_patch import render_patch
-from .renderer_screw_hole import render_screw_hole
 from .renderer_switch_holder import render_switch_holder
 from .renderer_text import render_text
 from .rendering import RENDERERS, RenderingPipelineStage, SeparateComponentRender
@@ -34,7 +33,6 @@ class RenderCaseResult:
     switch_holes: Any = None
     fused_switch_holders: Any = None
     fused_switch_holder_clearances: Any = None
-    screw_hole_rims: Any = None
     inner_clearances: Any = None
     patches: Any = None
     cuts: Any = None
@@ -64,7 +62,6 @@ class RenderCaseResult:
 
 def render_case(
     keys: List[Key],
-    screw_holes: Optional[List[ScrewHole]] = None,
     components: Optional[List[Renderable]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
@@ -80,7 +77,6 @@ def render_case(
     The core method that renders the keyboard case.
 
     :param keys: A list of Key objects defining the key positions. Required.
-    :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
     :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
@@ -153,10 +149,6 @@ def render_case(
                 result.separate_components.extend(render_result.separate_components)
 
     rendered_keys = [render_key(key, key_templates, case_config, key_config) for key in keys]
-    rendered_screw_holes = [
-        render_screw_hole(screw_hole, config.screw_hole_config, case_config)
-        for screw_hole in (screw_holes or [])
-    ]
     rendered_patches = [render_patch(patch, case_config) for patch in (patches or [])]
     rendered_cuts = [render_cut(cut, case_config) for cut in (cuts or [])]
     rendered_palm_rests = [
@@ -170,10 +162,6 @@ def render_case(
         [rk.case_column for rk in rendered_keys]
         + stage_rendered_components[RenderingPipelineStage.CASE_SOLID]
     )
-
-    result.inner_clearances = union_list([rsh.rim_inner_clearance for rsh in rendered_screw_holes])
-
-    result.screw_hole_rims = union_list([rsh.rim for rsh in rendered_screw_holes])
 
     case_clearances = union_list([rk.case_clearance for rk in rendered_keys])
 
@@ -189,9 +177,6 @@ def render_case(
         [rk.fused_switch_holder_clearance for rk in rendered_keys]
     )
 
-    for screw_hole in rendered_screw_holes:
-        result.switch_holes = result.switch_holes.union(screw_hole.hole)
-
     switch_debug = None
     for rendered_key in rendered_keys:
         if rendered_key.debug:
@@ -199,14 +184,6 @@ def render_case(
                 switch_debug = switch_debug.union(rendered_key.debug)
             else:
                 switch_debug = rendered_key.debug
-
-    screw_hole_debug = None
-    for rendered_screw_hole in rendered_screw_holes:
-        if rendered_screw_hole.debug:
-            if screw_hole_debug:
-                screw_hole_debug = screw_hole_debug.union(rendered_screw_hole.debug)
-            else:
-                screw_hole_debug = rendered_screw_hole.debug
 
     if rendered_patches:
         result.patches = union_list(rendered_patches)
@@ -228,8 +205,6 @@ def render_case(
         case = case.union(result.case_extras)
     case = case.cut(case_clearances)
     case = case.union(switch_rims).clean()
-    if result.screw_hole_rims:
-        case = case.union(result.screw_hole_rims)
     case = case.cut(keycap_clearances).clean()
 
     result.case_before_fillet = case
@@ -503,6 +478,7 @@ def render_case(
 
                 result.palm_rests.append(final_palm_rest)
 
+    # Collect component inner clearances
     stage_inner_clearances = union_list(
         stage_rendered_components[RenderingPipelineStage.INNER_CLEARANCES]
     )
@@ -529,14 +505,16 @@ def render_case(
     if result.palm_rests_after_fillet and not case_config.detachable_palm_rests:
         result.bottom = result.bottom.union(result.palm_rests_after_fillet[0])
 
+    # Remove component cutouts from top
+    top_cutouts = union_list(stage_rendered_components[RenderingPipelineStage.TOP_CUTOUTS])
+    if top_cutouts:
+        result.top = result.top.cut(top_cutouts)
+
     result.top = result.top.cut(result.switch_holes).clean()
 
     # Debugs
     if switch_debug:
         result.debug = result.debug.union(switch_debug) if result.debug else switch_debug
-
-    if screw_hole_debug:
-        result.debug = result.debug.union(screw_hole_debug) if result.debug else screw_hole_debug
 
     debug_items = union_list(stage_rendered_components[RenderingPipelineStage.DEBUG])
     if debug_items:
@@ -554,10 +532,6 @@ def render_case(
 
         result.switch_holders = result.switch_holders.intersect(result.inner_volume_after_fillet)
 
-    cuts = union_list(stage_rendered_components[RenderingPipelineStage.BOTTOM_CUTOUTS])
-    if cuts:
-        result.bottom = result.bottom.cut(cuts)
-
     if result.shell_cut:
         result.bottom = result.bottom.cut(result.shell_cut)
 
@@ -567,22 +541,18 @@ def render_case(
     for connector_support in case_connector_supports:
         result.bottom = result.bottom.union(connector_support)
 
-    # Add back screw hole rims
-    if result.screw_hole_rims:
-        result.screw_hole_rims_bottom = result.screw_hole_rims.copyWorkplane(
-            cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
-        ).split(keepBottom=True)
-
-        result.bottom = result.bottom.union(result.screw_hole_rims_bottom)
-
-        if result.switch_holders:
-            result.switch_holders = result.switch_holders.cut(result.screw_hole_rims)
-
-    additions = union_list(stage_rendered_components[RenderingPipelineStage.AFTER_SHELL_ADDITIONS])
+    # Add component additions to bottom
+    additions = union_list(
+        stage_rendered_components[RenderingPipelineStage.BOTTOM_AFTER_SHELL_ADDITIONS]
+    )
     if additions:
         result.bottom = result.bottom.union(additions)
 
-    # This also contains screw holes
+    # Remove component cutouts from bottom
+    cuts = union_list(stage_rendered_components[RenderingPipelineStage.BOTTOM_CUTOUTS])
+    if cuts:
+        result.bottom = result.bottom.cut(cuts)
+
     result.bottom = result.bottom.cut(result.switch_holes).clean()
 
     if rendered_texts:
@@ -604,7 +574,7 @@ def render_case(
                     # Intersects or on top of palm rest
                     result.palm_rests[index] = palm_rest.union(text)
 
-        # Remove keycap clearances and switch/screw holes from top
+        # Remove keycap clearances and switch holes from top
         if top_texts:
             top_text_union = top_texts[0]
             for top_text in top_texts[1:]:
