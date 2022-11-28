@@ -1,3 +1,5 @@
+from typing import Any
+
 import cadquery as cq
 
 from .config import Config
@@ -73,7 +75,7 @@ def render_connector_cutout(config: Config = Config()):
     return connector_cutout
 
 
-def render_case_connector_support(config: Config = Config()):
+def render_case_connector_support(config: Config = Config()) -> (Any, Any):
     connector_cutout = render_connector_cutout(config)
     conn_config = config.connector_config
 
@@ -81,25 +83,35 @@ def render_case_connector_support(config: Config = Config()):
         conn_config.end_tab_side_width * 2
         + conn_config.center_console_width
         + 2 * conn_config.horizontal_tolerance
+        + 2 * conn_config.tab_support_wall_size
     )
     cutout_depth = (
         config.case_config.case_thickness
         + conn_config.end_tab_depth
         + 2 * conn_config.horizontal_tolerance
+        + conn_config.tab_support_wall_size
     )
-    cutout_height = conn_config.height + conn_config.vertical_tolerance
+    cutout_height = (
+        conn_config.height + conn_config.vertical_tolerance + conn_config.tab_support_wall_size
+    )
 
-    return (
-        cq.Workplane("XY")
-        .center(0, config.case_config.switch_plate_gap_to_palm_rest / 2)
-        .box(
-            cutout_width + 2 * conn_config.tab_support_wall_size,
-            cutout_depth + conn_config.tab_support_wall_size,
-            cutout_height + conn_config.tab_support_wall_size,
-            centered=grow_yz,
-        )
-        .cut(connector_cutout)
+    wp = cq.Workplane("XY").center(0, config.case_config.switch_plate_gap_to_palm_rest / 2)
+
+    support = wp.box(
+        cutout_width,
+        cutout_depth,
+        cutout_height,
+        centered=grow_yz,
+    ).cut(connector_cutout)
+
+    inner_clearance = wp.box(
+        cutout_width + config.case_config.inner_volume_clearance * 2,
+        cutout_depth + config.case_config.inner_volume_clearance,
+        config.case_config.case_base_height,
+        centered=grow_yz,
     )
+
+    return support, inner_clearance
 
 
 def export_connector_to_stl(connector):

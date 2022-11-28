@@ -51,7 +51,7 @@ from .classes import (
     Renderable,
     ScrewHole,
     Text,
-    TrrsJack,
+    TRRSJack,
     USBCJack,
 )
 
@@ -66,7 +66,7 @@ from .config import (
     MXKeyConfig,
     MXSwitchHolderConfig,
     SwitchType,
-    TrrsJackConfig,
+    TRRSJackConfig,
     USBCJackConfig,
 )
 

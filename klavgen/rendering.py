@@ -10,8 +10,9 @@ from .config import Config
 class RenderingPipelineStage(Enum):
     CASE_SOLID = 0
     AFTER_SHELL_ADDITIONS = 1
-    BOTTOM_CUTS = 2
-    DEBUG = 3
+    BOTTOM_CUTOUTS = 2
+    INNER_CLEARANCES = 3
+    DEBUG = 4
 
 
 @dataclass

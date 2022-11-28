@@ -17,7 +17,7 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
     result = render_side_case_hole_rail(usbc_jack, config.usbc_jack_config, config.case_config)
 
     def render_in_place():
-        usbc_jack_holder = render_usbc_jack_holder(config, orient_for_printing=False)
+        usbc_jack_holder = render_usbc_jack_holder(config)
 
         usbc_jack_lr = LocationOrientation(
             x=usbc_jack.x,
@@ -34,13 +34,16 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
         items=[
             RenderedItem(result.case_column, pipeline_stage=RenderingPipelineStage.CASE_SOLID),
             RenderedItem(result.rail, pipeline_stage=RenderingPipelineStage.AFTER_SHELL_ADDITIONS),
-            RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTS),
+            RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTOUTS),
+            RenderedItem(
+                result.inner_clearance, pipeline_stage=RenderingPipelineStage.INNER_CLEARANCES
+            ),
             RenderedItem(result.debug, pipeline_stage=RenderingPipelineStage.DEBUG),
         ],
         separate_components=[
             SeparateComponentRender(
                 name="usbc_jack_holder",
-                render_func=lambda: render_usbc_jack_holder(config, orient_for_printing=True),
+                render_func=lambda: render_usbc_jack_holder(config),
                 render_in_place_func=render_in_place,
             )
         ],
@@ -50,7 +53,7 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
 RENDERERS.set_renderer("usbc_jack", render_usbc_jack)
 
 
-def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True):
+def render_usbc_jack_holder(config: Config = Config()):
     usbc_jack_config = config.usbc_jack_config
 
     wp = cq.Workplane("XY")
@@ -119,10 +122,6 @@ def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True)
 
     # Move forward because part that aligns with case wall is now in positive Y
     holder = holder.translate((0, offset_y, 0))
-
-    if orient_for_printing:
-        # No need to orient
-        pass
 
     return holder
 

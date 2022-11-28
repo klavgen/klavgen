@@ -444,7 +444,7 @@ def _render_switch_holder(
         holder = switch_holder_orient_and_center(holder, cf)
         socket = switch_holder_orient_and_center(socket, cf)
 
-    return RenderedSwitchHolder(holder, socket)
+    return RenderedSwitchHolder(switch_holder=holder, switch_holder_clearance=None, socket=socket)
 
 
 def sweep_socket(socket, cf: MXSwitchHolderConfig):

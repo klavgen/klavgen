@@ -54,6 +54,7 @@ class ScrewHole:
 @dataclass
 class RenderedScrewHole:
     rim: Any
+    rim_inner_clearance: Any
     hole: Any
     debug: Any
 
@@ -81,18 +82,21 @@ class Text(LocationOrientation):
 class RenderedSideHolder:
     case_column: Any
     rail: Any
+    inner_clearance: Any
     hole: Any
     debug: Any
 
 
 @dataclass
-class Controller(LocationOrientation):
-    pass
+class Controller(Renderable, LocationOrientation):
+    name = "controller"
+    render_func_name: str = "controller"
 
 
 @dataclass
-class TrrsJack(LocationOrientation):
-    pass
+class TRRSJack(Renderable, LocationOrientation):
+    name = "trrs_jack"
+    render_func_name: str = "trrs_jack"
 
 
 @dataclass

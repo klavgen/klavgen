@@ -11,9 +11,11 @@ keys = [  # By columns from bottom left
     Key(x=19, y=19),
 ]
 
-controller = Controller(x=47.5, y=34)
+components = []
 
-trrs_jack = TrrsJack(x=68, y=34)
+components.append(Controller(x=47.5, y=34))
+
+components.append(TRRSJack(x=68, y=34))
 
 screw_holes = [  # Clockwise from top left
     ScrewHole(x=-11.4, y=30.4),
@@ -72,8 +74,7 @@ texts = [
 keyboard_result = render_and_save_keyboard(
     keys=keys,
     screw_holes=screw_holes,
-    controller=controller,
-    trrs_jack=trrs_jack,
+    components=components,
     patches=patches,
     cuts=cuts,
     case_extras=case_extras,

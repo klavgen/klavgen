@@ -7,18 +7,7 @@ from typing import Any, Dict, List, Optional
 import cadquery as cq
 
 from . import renderer_controller, renderer_trrs_jack
-from .classes import (
-    Controller,
-    Cut,
-    Key,
-    LocationOrientation,
-    PalmRest,
-    Patch,
-    Renderable,
-    ScrewHole,
-    Text,
-    TrrsJack,
-)
+from .classes import Cut, Key, LocationOrientation, PalmRest, Patch, Renderable, ScrewHole, Text
 from .config import Config, SwitchType
 from .renderer_connector import (
     render_case_connector_support,
@@ -37,8 +26,6 @@ from .utils import position, union_list
 
 importlib.reload(renderer_controller)
 importlib.reload(renderer_trrs_jack)
-from .renderer_controller import render_controller_case_cutout_and_support, render_controller_holder
-from .renderer_trrs_jack import render_trrs_jack_case_cutout_and_support, render_trrs_jack_holder
 
 
 @dataclass
@@ -48,17 +35,15 @@ class RenderCaseResult:
     fused_switch_holders: Any = None
     fused_switch_holder_clearances: Any = None
     screw_hole_rims: Any = None
+    inner_clearances: Any = None
     patches: Any = None
     cuts: Any = None
     case_extras: Any = None
-    controller_hole: Any = None
-    controller_rail: Any = None
-    trrs_jack_hole: Any = None
-    trrs_jack_rail: Any = None
     case_before_fillet: Any = None
     top_before_fillet: Any = None
     vertical_clearance_before_fillet: Any = None
     case_after_fillet: Any = None
+    inner_volume_after_fillet: Any = None
     case_after_shell: Any = None
     shell_cut: Any = None
     top: Any = None
@@ -80,8 +65,6 @@ class RenderCaseResult:
 def render_case(
     keys: List[Key],
     screw_holes: Optional[List[ScrewHole]] = None,
-    controller: Optional[Controller] = None,
-    trrs_jack: Optional[TrrsJack] = None,
     components: Optional[List[Renderable]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
@@ -98,8 +81,6 @@ def render_case(
 
     :param keys: A list of Key objects defining the key positions. Required.
     :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
-    :param controller: A Controller object defining where the controller back center is. Optional.
-    :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
     :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
@@ -176,16 +157,6 @@ def render_case(
         render_screw_hole(screw_hole, config.screw_hole_config, case_config)
         for screw_hole in (screw_holes or [])
     ]
-    rendered_controller = (
-        render_controller_case_cutout_and_support(controller, config.controller_config, case_config)
-        if controller
-        else None
-    )
-    rendered_trrs_jack = (
-        render_trrs_jack_case_cutout_and_support(trrs_jack, config.trrs_jack_config, case_config)
-        if trrs_jack
-        else None
-    )
     rendered_patches = [render_patch(patch, case_config) for patch in (patches or [])]
     rendered_cuts = [render_cut(cut, case_config) for cut in (cuts or [])]
     rendered_palm_rests = [
@@ -200,27 +171,9 @@ def render_case(
         + stage_rendered_components[RenderingPipelineStage.CASE_SOLID]
     )
 
-    # case_columns = case_columns + stage_rendered_components.get(RenderingPipelineStage.CASE_SOLID)
+    result.inner_clearances = union_list([rsh.rim_inner_clearance for rsh in rendered_screw_holes])
 
-    if rendered_controller:
-        case_columns = case_columns.union(rendered_controller.case_column)
-        result.controller_rail = rendered_controller.rail
-        result.controller_hole = rendered_controller.hole
-    else:
-        result.controller_rail = None
-        result.controller_hole = None
-
-    if rendered_trrs_jack:
-        case_columns = case_columns.union(rendered_trrs_jack.case_column)
-        result.trrs_jack_rail = rendered_trrs_jack.rail
-        result.trrs_jack_hole = rendered_trrs_jack.hole
-    else:
-        result.trrs_jack_rail = None
-        result.trrs_jack_hole = None
-
-    result.screw_hole_rims = None
-    if rendered_screw_holes:
-        result.screw_hole_rims = union_list([rsh.rim for rsh in rendered_screw_holes])
+    result.screw_hole_rims = union_list([rsh.rim for rsh in rendered_screw_holes])
 
     case_clearances = union_list([rk.case_clearance for rk in rendered_keys])
 
@@ -309,6 +262,17 @@ def render_case(
             raise
     else:
         result.case_after_fillet = result.case_before_fillet
+
+    result.inner_volume_after_fillet = (
+        result.case_after_fillet.faces("<Z")
+        .wires()
+        .toPending()
+        .offset2D(
+            -case_config.case_thickness - case_config.inner_volume_clearance, kind="intersection"
+        )
+        .extrude(case_config.case_inner_height, combine=False)
+        .translate((0, 0, case_config.case_thickness))
+    )
 
     if not debug:
         try:
@@ -417,7 +381,10 @@ def render_case(
 
             connector_template = render_connector(config)
             connector_cutout_template = render_connector_cutout(config)
-            case_connector_support_template = render_case_connector_support(config)
+            (
+                case_connector_support_template,
+                case_connector_support_clearance_template,
+            ) = render_case_connector_support(config)
 
             for palm_rest_tuple in zip(rendered_palm_rests, palm_rests):
                 palm_rest_before_case_clearance, palm_rest = palm_rest_tuple
@@ -516,6 +483,13 @@ def render_case(
                         case_connector_support = position(
                             case_connector_support_template, connector_location
                         )
+                        case_connector_support_clearance = position(
+                            case_connector_support_clearance_template, connector_location
+                        )
+
+                        result.inner_clearances = union_list(
+                            [result.inner_clearances, case_connector_support_clearance]
+                        )
 
                         final_palm_rest = final_palm_rest.cut(connector_cutout)
 
@@ -528,6 +502,17 @@ def render_case(
                             standard_components.append(connector)
 
                 result.palm_rests.append(final_palm_rest)
+
+    stage_inner_clearances = union_list(
+        stage_rendered_components[RenderingPipelineStage.INNER_CLEARANCES]
+    )
+    if stage_inner_clearances:
+        result.inner_clearances = union_list([result.inner_clearances, stage_inner_clearances])
+
+    if result.inner_clearances:
+        result.inner_volume_after_fillet = result.inner_volume_after_fillet.cut(
+            result.inner_clearances
+        )
 
     result.bottom_before_fillet = result.case_with_rests_before_fillet.copyWorkplane(
         cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
@@ -546,9 +531,6 @@ def render_case(
 
     result.top = result.top.cut(result.switch_holes).clean()
 
-    # if result.fused_switch_holders:
-    #     result.top = result.top.union(result.fused_switch_holders)
-
     # Debugs
     if switch_debug:
         result.debug = result.debug.union(switch_debug) if result.debug else switch_debug
@@ -556,47 +538,28 @@ def render_case(
     if screw_hole_debug:
         result.debug = result.debug.union(screw_hole_debug) if result.debug else screw_hole_debug
 
-    if rendered_controller and rendered_controller.debug:
-        result.debug = (
-            result.debug.union(rendered_controller.debug)
-            if result.debug
-            else rendered_controller.debug
-        )
-
-    if rendered_trrs_jack and rendered_trrs_jack.debug:
-        result.debug = (
-            result.debug.union(rendered_trrs_jack.debug)
-            if result.debug
-            else rendered_trrs_jack.debug
-        )
-
     debug_items = union_list(stage_rendered_components[RenderingPipelineStage.DEBUG])
     if debug_items:
         result.debug = result.debug.union(debug_items) if result.debug else debug_items
 
-    cuts = union_list(stage_rendered_components[RenderingPipelineStage.BOTTOM_CUTS])
+    result.switch_holders = None
+    if result.fused_switch_holders:
+        result.switch_holders = result.fused_switch_holders
+
+        if result.fused_switch_holder_clearances:
+            result.switch_holders = result.switch_holders.cut(result.fused_switch_holder_clearances)
+
+        if result.inner_clearances:
+            result.switch_holders = result.switch_holders.cut(result.inner_clearances)
+
+        result.switch_holders = result.switch_holders.intersect(result.inner_volume_after_fillet)
+
+    cuts = union_list(stage_rendered_components[RenderingPipelineStage.BOTTOM_CUTOUTS])
     if cuts:
         result.bottom = result.bottom.cut(cuts)
 
-    result.switch_holders = None
-    if result.fused_switch_holders:
-        if result.fused_switch_holder_clearances:
-            result.switch_holders = result.fused_switch_holders.cut(
-                result.fused_switch_holder_clearances
-            )
-        else:
-            result.switch_holders = result.fused_switch_holders
-
     if result.shell_cut:
         result.bottom = result.bottom.cut(result.shell_cut)
-        if result.switch_holders:
-            result.switch_holders = result.switch_holders.intersect(result.shell_cut)
-
-    if result.controller_hole:
-        result.bottom = result.bottom.cut(result.controller_hole)
-
-    if result.trrs_jack_hole:
-        result.bottom = result.bottom.cut(result.trrs_jack_hole)
 
     for connector_cut in connector_cutouts:
         result.bottom = result.bottom.cut(connector_cut)
@@ -618,12 +581,6 @@ def render_case(
     additions = union_list(stage_rendered_components[RenderingPipelineStage.AFTER_SHELL_ADDITIONS])
     if additions:
         result.bottom = result.bottom.union(additions)
-
-    if result.controller_rail:
-        result.bottom = result.bottom.union(result.controller_rail)
-
-    if result.trrs_jack_rail:
-        result.bottom = result.bottom.union(result.trrs_jack_rail)
 
     # This also contains screw holes
     result.bottom = result.bottom.cut(result.switch_holes).clean()
@@ -677,42 +634,6 @@ def render_case(
                     rotate_around=key.rotate_around,
                 )
                 standard_components.append(position(switch_holder_template, switch_holder_lr))
-
-        # Add controller holder
-        if controller:
-            controller_config = config.controller_config
-
-            controller_holder = render_controller_holder(config).translate(
-                (0, -case_config.case_thickness - controller_config.horizontal_tolerance, 0)
-            )
-
-            controller_lr = LocationOrientation(
-                x=controller.x,
-                y=controller.y,
-                z=controller.z - case_config.case_base_height + case_config.case_thickness,
-                rotate=controller.rotate,
-                rotate_around=controller.rotate_around,
-            )
-
-            standard_components.append(position(controller_holder, controller_lr))
-
-        # Add TRRS jack holder
-        if trrs_jack:
-            trrs_jack_config = config.trrs_jack_config
-
-            trrs_jack_holder = render_trrs_jack_holder(trrs_jack_config).translate(
-                (0, -case_config.case_thickness - trrs_jack_config.horizontal_tolerance, 0)
-            )
-
-            trrs_jack_lr = LocationOrientation(
-                x=trrs_jack.x,
-                y=trrs_jack.y,
-                z=trrs_jack.z - case_config.case_base_height + case_config.case_thickness,
-                rotate=trrs_jack.rotate,
-                rotate_around=trrs_jack.rotate_around,
-            )
-
-            standard_components.append(position(trrs_jack_holder, trrs_jack_lr))
 
         for component in result.separate_components:
             standard_components.append(component.render_in_place_func())

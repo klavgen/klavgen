@@ -11,9 +11,15 @@ def render_screw_hole(
         offset=(screw_hole.x, screw_hole.y, -case_config.case_base_height)
     )
 
+    # Rim
     rim = base_wp.circle(config.screw_rim_radius).extrude(
         screw_hole.z + case_config.case_base_height
     )
+
+    # Rim clearance
+    rim_inner_clearance = base_wp.circle(
+        config.screw_rim_radius + case_config.inner_volume_clearance
+    ).extrude(screw_hole.z + case_config.case_base_height)
 
     # Hole below insert
     hole = (
@@ -56,4 +62,6 @@ def render_screw_hole(
         .extrude(1)
     )
 
-    return RenderedScrewHole(rim, hole, debug)
+    return RenderedScrewHole(
+        rim=rim, rim_inner_clearance=rim_inner_clearance, hole=hole, debug=debug
+    )

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from .classes import Controller, Cut, Key, PalmRest, Patch, ScrewHole, Text, TrrsJack
+from .classes import Controller, Cut, Key, PalmRest, Patch, ScrewHole, Text, TRRSJack
 from .config import Config, SwitchType
 from .renderer_case import RenderCaseResult, export_case_to_stl, render_case
 from .renderer_connector import export_connector_to_stl, render_connector
@@ -27,8 +27,6 @@ class RenderKeyboardResult:
 def render_and_save_keyboard(
     keys: List[Key],
     screw_holes: Optional[List[ScrewHole]] = None,
-    controller: Optional[Controller] = None,
-    trrs_jack: Optional[TrrsJack] = None,
     components: Optional[List[Renderable]] = None,
     case_extras: Optional[List[Any]] = None,
     patches: Optional[List[Patch]] = None,
@@ -45,8 +43,6 @@ def render_and_save_keyboard(
 
     :param keys: A list of Key objects defining the key positions. Required.
     :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
-    :param controller: A Controller object defining where the controller back center is. Optional.
-    :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
     :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
@@ -69,8 +65,6 @@ def render_and_save_keyboard(
     case_result = render_case(
         keys=keys,
         screw_holes=screw_holes,
-        controller=controller,
-        trrs_jack=trrs_jack,
         components=components,
         patches=patches,
         cuts=cuts,
@@ -89,16 +83,6 @@ def render_and_save_keyboard(
         switch_holder_result = render_switch_holder(config)
         export_switch_holder_to_stl(switch_holder_result)
         switch_holder = switch_holder_result.switch_holder
-
-    controller_holder = None
-    if controller:
-        controller_holder = render_controller_holder(config)
-        export_controller_holder_to_stl(controller_holder)
-
-    trrs_jack_holder = None
-    if trrs_jack:
-        trrs_jack_holder = render_trrs_jack_holder(config.trrs_jack_config)
-        export_trrs_jack_holder_to_stl(trrs_jack_holder)
 
     palm_rests = None
     connector = None
@@ -121,8 +105,6 @@ def render_and_save_keyboard(
         bottom=case_result.bottom,
         switch_holder=switch_holder,
         connector=connector,
-        controller_holder=controller_holder,
-        trrs_jack_holder=trrs_jack_holder,
         separate_components=rendered_components,
         palm_rests=palm_rests,
     )

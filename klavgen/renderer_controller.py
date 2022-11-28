@@ -1,17 +1,60 @@
 import cadquery as cq
 
-from .classes import Controller, RenderedSideHolder
-from .config import CaseConfig, Config, ControllerConfig
+from .classes import Controller, LocationOrientation
+from .config import Config
 from .renderer_side_holder import render_side_case_hole_rail, render_side_mount_bracket
-from .utils import grow_yz
+from .rendering import (
+    RENDERERS,
+    RenderedItem,
+    RenderingPipelineStage,
+    RenderResult,
+    SeparateComponentRender,
+)
+from .utils import grow_yz, position
 
 
-def render_controller_case_cutout_and_support(
-    controller: Controller,
-    config: ControllerConfig = ControllerConfig(),
-    case_config: CaseConfig = CaseConfig(),
-) -> RenderedSideHolder:
-    return render_side_case_hole_rail(controller, config, case_config)
+def render_controller(controller: Controller, config: Config) -> RenderResult:
+    result = render_side_case_hole_rail(controller, config.controller_config, config.case_config)
+
+    def render_in_place():
+        controller_holder = render_controller_holder(config)
+
+        controller_lr = LocationOrientation(
+            x=controller.x,
+            y=controller.y
+            - config.case_config.case_thickness
+            - config.controller_config.horizontal_tolerance,
+            z=controller.z
+            - config.case_config.case_base_height
+            + config.case_config.case_thickness,
+            rotate=controller.rotate,
+            rotate_around=controller.rotate_around,
+        )
+
+        return position(controller_holder, controller_lr)
+
+    return RenderResult(
+        name=controller.name or "controller",
+        items=[
+            RenderedItem(result.case_column, pipeline_stage=RenderingPipelineStage.CASE_SOLID),
+            RenderedItem(result.rail, pipeline_stage=RenderingPipelineStage.AFTER_SHELL_ADDITIONS),
+            RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTOUTS),
+            RenderedItem(
+                result.inner_clearance, pipeline_stage=RenderingPipelineStage.INNER_CLEARANCES
+            ),
+            RenderedItem(result.debug, pipeline_stage=RenderingPipelineStage.DEBUG),
+        ],
+        separate_components=[
+            SeparateComponentRender(
+                name="controller_holder",
+                render_func=lambda: render_controller_holder(config),
+                render_in_place_func=render_in_place,
+            )
+        ],
+    )
+
+
+RENDERERS.set_renderer("controller", render_controller)
 
 
 def render_controller_holder(config: Config = Config()):

@@ -82,7 +82,7 @@ class CaseConfig:
     # Choc: 8.4 = the max of:
     #   - Switch: 7.8 = 2.2 switch (incl top thickness of 2) + 0.6 buffer + 1.2 socket bumps + 1.8 socket + 2 bottom thickness
     #   - USB holder: 8.4 = 2 top thickness + 4.4 usbc socket (3.6 hole + 0.8 on top & bottom) + 2 bottom thickness
-    case_base_height: float = 8.4  # 9
+    case_base_height: float = 11  # 8.4
 
     # Global clearance height
     clearance_height: float = 100
@@ -93,6 +93,8 @@ class CaseConfig:
     palm_rests_top_fillet: Optional[float] = None
 
     detachable_palm_rests: bool = True
+
+    inner_volume_clearance: float = 0.4
 
     def __post_init__(self):
         self.case_inner_height = self.case_base_height - 2 * self.case_thickness
@@ -709,7 +711,7 @@ class ControllerConfig(SideHolderConfig):
 
 
 @dataclass
-class TrrsJackConfig(SideHolderConfig):
+class TRRSJackConfig(SideHolderConfig):
     item_width: float = 6
 
     item_depth: float = 12
@@ -780,7 +782,7 @@ class Config:
 
     controller_config: ControllerConfig = ControllerConfig()
 
-    trrs_jack_config: TrrsJackConfig = TrrsJackConfig()
+    trrs_jack_config: TRRSJackConfig = TRRSJackConfig()
     usbc_jack_config: USBCJackConfig = USBCJackConfig()
 
     connector_config: ConnectorConfig = ConnectorConfig()
