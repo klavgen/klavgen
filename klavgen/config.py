@@ -75,14 +75,20 @@ class CaseConfig:
     use_switch_holders: bool = True
 
     case_thickness: float = 2  # 2.4
+    case_bottom_wall_height: float = 1
+    case_top_wall_height: float = 2
 
     # Total height, including top and bottom thickness
     # MX: 11 = 5 switch (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
     #   2 bottom thickness
     # Choc: 8.4 = the max of:
-    #   - Switch: 7.8 = 2.2 switch (incl top thickness of 2) + 0.6 buffer + 1.2 socket bumps + 1.8 socket + 2 bottom thickness
-    #   - USB holder: 8.4 = 2 top thickness + 4.4 usbc socket (3.6 hole + 0.8 on top & bottom) + 2 bottom thickness
-    case_base_height: float = 11  # 8.4
+    #   - Switch: 7.8 = 2.2 switch (incl top thickness of 2) + 0.6 buffer + 1.2 socket bumps + 1.8 socket
+    #                   + 2 bottom thickness
+    #   - USB holder: 9 = 2 top thickness + 4.8 usbc socket (3.6 hole + 1.2 on top & bottom) + 2 bottom thickness
+    #                     + 0.2 tolerance
+    #   - Pro Micro holder: 9 = 2 top thickness + 5 PCB + 2 bottom thickness + 0.2 tolerance
+    #   - After Elite-C: 7.4 = 2 top thickness + 3.4 PCB + 2 bottom thickness
+    case_base_height: float = 9  # 11
 
     # Global clearance height
     clearance_height: float = 100
@@ -657,8 +663,6 @@ class SideHolderConfig:
     holder_bracket_depth: float = 1.4
     holder_bracket_width: float = 2
 
-    holder_hole_width: float = 5.3
-
     side_supports_width: float = 1
 
     case_tile_margin: float = 7
@@ -686,13 +690,16 @@ class SideHolderConfig:
 class ControllerConfig(SideHolderConfig):
     item_width: float = 18.2
 
-    item_depth: float = 33.4  # 35.2 usbc / 33.4 microusb
+    item_depth: float = 35.2  # Pro Micro: 35.2 usbc / 33.4 microusb
     back_support_depth: float = 1.4
 
     case_hole_width: float = 18
 
+    # PCB
+    controller_height: float = 5.0
+
     # Base
-    base_height: float = 1.0
+    # base_height: float = 1.0
     base_center_width: float = 8
     base_side_width: float = 0.5
     base_front_depth: float = 2
@@ -707,7 +714,7 @@ class ControllerConfig(SideHolderConfig):
 
     # USB port hole
     usb_port_hole_start_height_from_pcb_bottom: float = 1.2
-    usb_port_hole_width: float = 9.0  # 10.0 usbc / 9.0 microusb
+    usb_port_hole_width: float = 10.0  # Pro Micro: 10.0 usbc / 9.0 microusb
 
 
 @dataclass
@@ -719,6 +726,7 @@ class TRRSJackConfig(SideHolderConfig):
 
     case_hole_width: float = 10
 
+    holder_hole_width: float = 5.3
     holder_height: float = 7
 
     holder_right_bracket_depth: float = 9.5
@@ -742,7 +750,7 @@ class USBCJackConfig(SideHolderConfig):
 
     case_hole_width: float = 11
 
-    base_height: float = 1.8
+    # base_height: float = 1.8
 
     jack_height: float = 3.6
     holder_depth_behind_bracket: float = 2.9

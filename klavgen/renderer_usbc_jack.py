@@ -58,7 +58,12 @@ RENDERERS.set_renderer("usbc_jack", render_usbc_jack)
 def render_usbc_jack_holder(config: Config = Config()):
     usbc_jack_config = config.usbc_jack_config
 
+    # Jack is oriented with the bracket on front. Y=0 is the point after the bracket, so bracket + case wall are in
+    # negative Y. This is how render_side_mount_bracket() renders the bracket
     wp = cq.Workplane("XY")
+
+    case_config = config.case_config
+    holder_height = case_config.case_inner_height - usbc_jack_config.vertical_tolerance
 
     # Mount bracket
     holder = render_side_mount_bracket(
@@ -66,19 +71,23 @@ def render_usbc_jack_holder(config: Config = Config()):
     )
 
     # Holder
-    case_config = config.case_config
     back_wrapper = wp.center(0, usbc_jack_config.holder_bracket_depth).box(
         usbc_jack_config.base_width,
         usbc_jack_config.holder_depth_behind_bracket,
-        case_config.case_inner_height - usbc_jack_config.vertical_tolerance,
+        holder_height,
         centered=grow_yz,
     )
     holder = holder.union(back_wrapper)
 
-    # USBC jack
+    # USBC jack hole
+
+    # Offset in negative Y to get to the start of the wall since we want the jack hole to go through the holder which
+    # fills the wall hole
     offset_y = -case_config.case_thickness - config.usbc_jack_config.horizontal_tolerance
 
-    jack_wp = wp.workplane(offset=usbc_jack_config.base_height).center(0, offset_y)
+    vertical_support_height = (holder_height - usbc_jack_config.jack_height) / 2
+
+    jack_wp = wp.workplane(offset=vertical_support_height).center(0, offset_y)
     jack_depth = (
         case_config.case_thickness
         + config.usbc_jack_config.horizontal_tolerance
@@ -114,7 +123,7 @@ def render_usbc_jack_holder(config: Config = Config()):
             (
                 0,
                 usbc_jack_config.holder_bracket_depth + usbc_jack_config.item_depth,
-                usbc_jack_config.base_height + usbc_jack_config.jack_height / 2,
+                vertical_support_height + usbc_jack_config.jack_height / 2,
             )
         )
     ).chamfer(0.5)

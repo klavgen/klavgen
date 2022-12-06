@@ -42,9 +42,9 @@ def _render_screw_hole(
     )
 
     # Rim that should be added back to the bottom (=cut the top off)
-    rim_bottom = rim.copyWorkplane(
-        cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
-    ).split(keepBottom=True)
+    rim_bottom = base_wp.circle(config.screw_rim_radius).extrude(
+        screw_hole.z + case_config.case_base_height - case_config.case_thickness
+    )
 
     # Rim clearance
     rim_inner_clearance = base_wp.circle(
@@ -69,12 +69,15 @@ def _render_screw_hole(
         .workplane()
         .circle(config.screw_insert_hole_width)
         .extrude(config.screw_insert_depth)
-        .faces(">Z")
-        .workplane()
     )
 
     # Hole for top plate
-    hole = hole.circle(config.screw_hole_plate_radius).extrude(case_config.case_thickness)
+    hole = (
+        hole.faces(">Z")
+        .workplane()
+        .circle(config.screw_hole_plate_radius)
+        .extrude(case_config.case_thickness)
+    )
 
     # Vertical clearance on top for the head
     hole = (

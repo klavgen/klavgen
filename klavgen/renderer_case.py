@@ -100,7 +100,6 @@ def render_case(
     result.keys = keys
 
     case_config = config.case_config
-    switch_holder_config = config.get_switch_holder_config()
     key_config = config.get_key_config()
 
     assert (
@@ -251,25 +250,52 @@ def render_case(
 
     if not debug:
         try:
-            result.case_after_shell = result.case_after_fillet.shell(
-                thickness=-case_config.case_thickness
-            ).clean()
-
+            result.shell_cut = (
+                result.case_after_fillet.faces("<Z")
+                .wires()
+                .toPending()
+                .offset2D(-case_config.case_thickness, kind="intersection")
+                .extrude(case_config.case_inner_height, combine=False)
+                .translate((0, 0, case_config.case_thickness))
+            )
         except Exception:
             print(
-                "The case shell step failed, which likely means your keyboard is not continuous or there are very "
-                "sharp angles. To troubleshoot, pass in the result param and inspect result.case_after_fillet."
+                "The case side wall generation step failed, which likely means your keyboard is not continuous or "
+                "there are very sharp angles. To troubleshoot, pass in the result param and inspect "
+                "result.case_after_fillet."
             )
             raise
 
         try:
-            result.shell_cut = result.case_after_fillet.cut(result.case_after_shell)
+            result.case_after_shell = result.case_after_fillet.cut(result.shell_cut)
         except Exception:
             print(
-                "The case inner volume step failed, which likely means the shell step produced invalid results. To "
-                "troubleshoot, pass in the result param and inspect result.case_after_shell."
+                "The case inner volume removal step failed, which likely means the side wall generation step "
+                "produced invalid results. To troubleshoot, pass in the result param and inspect "
+                "result.case_after_shell and result.shell_cut."
             )
             raise
+
+        # try:
+        #     result.case_after_shell = result.case_after_fillet.shell(
+        #         thickness=-case_config.case_thickness
+        #     ).clean()
+        #
+        # except Exception:
+        #     print(
+        #         "The case shell step failed, which likely means your keyboard is not continuous or there are very "
+        #         "sharp angles. To troubleshoot, pass in the result param and inspect result.case_after_fillet."
+        #     )
+        #     raise
+        #
+        # try:
+        #     result.shell_cut = result.case_after_fillet.cut(result.case_after_shell)
+        # except Exception:
+        #     print(
+        #         "The case inner volume step failed, which likely means the shell step produced invalid results. To "
+        #         "troubleshoot, pass in the result param and inspect result.case_after_shell."
+        #     )
+        #     raise
     else:
         result.case_after_shell = None
         result.shell_cut = None
@@ -554,6 +580,17 @@ def render_case(
         result.bottom = result.bottom.cut(cuts)
 
     result.bottom = result.bottom.cut(result.switch_holes).clean()
+
+    # TODO: remove
+    # Add 1.2 mm bottom platform for the switch holders to rest on
+    platform = (
+        result.inner_volume_after_fillet.faces(">Z")
+        .wires()
+        .toPending()
+        .extrude(1.2, combine=False)
+        .translate((0, 0, -case_config.case_inner_height))
+    )
+    result.bottom = result.bottom.union(platform)
 
     if rendered_texts:
         top_texts = []
