@@ -2,7 +2,7 @@ import importlib
 import math
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import cadquery as cq
 
@@ -29,34 +29,35 @@ importlib.reload(renderer_trrs_jack)
 
 @dataclass
 class RenderCaseResult:
+    config: Optional[Config] = None
     keys: Optional[List[Key]] = (None,)
-    switch_holes: Any = None
-    fused_switch_holders: Any = None
-    fused_switch_holder_clearances: Any = None
-    inner_clearances: Any = None
-    patches: Any = None
-    cuts: Any = None
-    case_extras: Any = None
-    case_before_fillet: Any = None
-    top_before_fillet: Any = None
-    vertical_clearance_before_fillet: Any = None
-    case_after_fillet: Any = None
-    inner_volume_after_fillet: Any = None
-    case_after_shell: Any = None
-    shell_cut: Any = None
-    top: Any = None
-    palm_rests_before_case_clearance: Optional[List[Any]] = None
-    palm_rests_before_fillet: Optional[List[Any]] = None
-    palm_rests_after_side_fillet: Optional[List[Any]] = None
-    palm_rests_after_fillet: Optional[List[Any]] = None
-    palm_rests: Optional[List[Any]] = None
-    case_with_rests_before_fillet: Any = None
-    bottom_before_fillet: Any = None
-    bottom: Any = None
-    switch_holders: Any = None
-    debug: Any = None
-    standard_components: Any = None
-    components: Optional[Dict[str, Dict[str, List[Any]]]] = None
+    switch_holes: Optional[cq.Workplane] = None
+    fused_switch_holders: Optional[cq.Workplane] = None
+    fused_switch_holder_clearances: Optional[cq.Workplane] = None
+    inner_clearances: Optional[cq.Workplane] = None
+    patches: Optional[cq.Workplane] = None
+    cuts: Optional[cq.Workplane] = None
+    case_extras: Optional[cq.Workplane] = None
+    case_before_fillet: Optional[cq.Workplane] = None
+    top_before_fillet: Optional[cq.Workplane] = None
+    vertical_clearance_before_fillet: Optional[cq.Workplane] = None
+    case_after_fillet: Optional[cq.Workplane] = None
+    inner_volume_after_fillet: Optional[cq.Workplane] = None
+    case_after_shell: Optional[cq.Workplane] = None
+    shell_cut: Optional[cq.Workplane] = None
+    top: Optional[cq.Workplane] = None
+    palm_rests_before_case_clearance: Optional[List[cq.Workplane]] = None
+    palm_rests_before_fillet: Optional[List[cq.Workplane]] = None
+    palm_rests_after_side_fillet: Optional[List[cq.Workplane]] = None
+    palm_rests_after_fillet: Optional[List[cq.Workplane]] = None
+    palm_rests: Optional[List[cq.Workplane]] = None
+    case_with_rests_before_fillet: Optional[cq.Workplane] = None
+    bottom_before_fillet: Optional[cq.Workplane] = None
+    bottom: Optional[cq.Workplane] = None
+    switch_holders: Optional[cq.Workplane] = None
+    debug: Optional[cq.Workplane] = None
+    standard_components: Optional[cq.Workplane] = None
+    components: Optional[Dict[str, Dict[str, List[cq.Workplane]]]] = None
     separate_components: Optional[List[SeparateComponentRender]] = None
 
 
@@ -65,7 +66,7 @@ def render_case(
     components: Optional[List[Renderable]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
-    case_extras: Optional[List[Any]] = None,
+    case_extras: Optional[List[cq.Workplane]] = None,
     palm_rests: Optional[List[PalmRest]] = None,
     texts: Optional[List[Text]] = None,
     debug: bool = False,
@@ -97,6 +98,7 @@ def render_case(
     if not result:
         result = RenderCaseResult()
 
+    result.config = config
     result.keys = keys
 
     case_config = config.case_config
@@ -104,18 +106,21 @@ def render_case(
 
     assert (
         case_config.switch_plate_top_fillet is None
-        or case_config.switch_plate_top_fillet < case_config.case_thickness
-    ), "Switch plate top fillet (switch_plate_top_fillet) needs to be smaller than case thickness (case_thickness)"
+        or case_config.switch_plate_top_fillet < case_config.case_top_wall_height
+    ), (
+        "Switch plate top fillet (switch_plate_top_fillet) needs to be smaller than case top wall height "
+        "(case_top_wall_height)"
+    )
 
     if case_config.side_fillet:
         assert (
-            abs(case_config.side_fillet - case_config.case_thickness) >= 0.01
-        ), "Side fillet needs to be at least 0.01 above or below case thickness"
+            abs(case_config.side_fillet - case_config.case_side_wall_thickness) >= 0.01
+        ), "Side fillet needs to be at least 0.01 above or below case thickness (case_side_wall_thickness)"
 
     key_templates = render_key_templates(config)
 
     # Do rendering
-    stage_rendered_components: Dict[RenderingPipelineStage, List[Any]] = defaultdict(list)
+    stage_rendered_components: Dict[RenderingPipelineStage, List[cq.Workplane]] = defaultdict(list)
     result.separate_components = []
     result.components = {}
     if components:
@@ -176,13 +181,7 @@ def render_case(
         [rk.fused_switch_holder_clearance for rk in rendered_keys]
     )
 
-    switch_debug = None
-    for rendered_key in rendered_keys:
-        if rendered_key.debug:
-            if switch_debug:
-                switch_debug = switch_debug.union(rendered_key.debug)
-            else:
-                switch_debug = rendered_key.debug
+    result.debug = union_list([rendered_key.debug for rendered_key in rendered_keys])
 
     if rendered_patches:
         result.patches = union_list(rendered_patches)
@@ -209,7 +208,7 @@ def render_case(
     result.case_before_fillet = case
 
     result.top_before_fillet = result.case_before_fillet.copyWorkplane(
-        cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
+        cq.Workplane("XY").workplane(offset=-case_config.case_top_wall_height)
     ).split(keepTop=True)
 
     # The switch part of the case extended vertically to cut any higher palm rest
@@ -242,10 +241,11 @@ def render_case(
         .wires()
         .toPending()
         .offset2D(
-            -case_config.case_thickness - case_config.inner_volume_clearance, kind="intersection"
+            -case_config.case_side_wall_thickness - case_config.inner_volume_clearance,
+            kind="intersection",
         )
         .extrude(case_config.case_inner_height, combine=False)
-        .translate((0, 0, case_config.case_thickness))
+        .translate((0, 0, case_config.case_bottom_wall_height))
     )
 
     if not debug:
@@ -254,9 +254,9 @@ def render_case(
                 result.case_after_fillet.faces("<Z")
                 .wires()
                 .toPending()
-                .offset2D(-case_config.case_thickness, kind="intersection")
+                .offset2D(-case_config.case_side_wall_thickness, kind="intersection")
                 .extrude(case_config.case_inner_height, combine=False)
-                .translate((0, 0, case_config.case_thickness))
+                .translate((0, 0, case_config.case_bottom_wall_height))
             )
         except Exception:
             print(
@@ -278,7 +278,7 @@ def render_case(
 
         # try:
         #     result.case_after_shell = result.case_after_fillet.shell(
-        #         thickness=-case_config.case_thickness
+        #         thickness=-case_config.case_side_wall_thickness
         #     ).clean()
         #
         # except Exception:
@@ -301,7 +301,7 @@ def render_case(
         result.shell_cut = None
 
     result.top = result.case_after_fillet.copyWorkplane(
-        cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
+        cq.Workplane("XY").workplane(offset=-case_config.case_top_wall_height)
     ).split(keepTop=True)
 
     if case_config.switch_plate_top_fillet and not debug:
@@ -517,7 +517,7 @@ def render_case(
         )
 
     result.bottom_before_fillet = result.case_with_rests_before_fillet.copyWorkplane(
-        cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
+        cq.Workplane("XY").workplane(offset=-case_config.case_top_wall_height)
     ).split(keepBottom=True)
 
     if case_config.side_fillet and not debug:
@@ -538,13 +538,7 @@ def render_case(
 
     result.top = result.top.cut(result.switch_holes).clean()
 
-    # Debugs
-    if switch_debug:
-        result.debug = result.debug.union(switch_debug) if result.debug else switch_debug
-
-    debug_items = union_list(stage_rendered_components[RenderingPipelineStage.DEBUG])
-    if debug_items:
-        result.debug = result.debug.union(debug_items) if result.debug else debug_items
+    result.debug = union_list(result.debug, stage_rendered_components[RenderingPipelineStage.DEBUG])
 
     result.switch_holders = None
     if result.fused_switch_holders:
@@ -636,7 +630,7 @@ def render_case(
                 switch_holder_lr = LocationOrientation(
                     x=key.x,
                     y=key.y,
-                    z=key.z - case_config.case_thickness - switch_holder_config.holder_height,
+                    z=key.z - case_config.case_top_wall_height - switch_holder_config.holder_height,
                     rotate=key.rotate,
                     rotate_around=key.rotate_around,
                 )

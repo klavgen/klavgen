@@ -74,9 +74,9 @@ class CaseConfig:
     switch_type: SwitchType = SwitchType.MX
     use_switch_holders: bool = True
 
-    case_thickness: float = 2  # 2.4
-    case_bottom_wall_height: float = 1
-    case_top_wall_height: float = 2
+    case_side_wall_thickness: float = 1.4  # 2.4
+    case_bottom_wall_height: float = 0.9
+    case_top_wall_height: float = 1.8
 
     # Total height, including top and bottom thickness
     # MX: 11 = 5 switch (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
@@ -88,7 +88,9 @@ class CaseConfig:
     #                     + 0.2 tolerance
     #   - Pro Micro holder: 9 = 2 top thickness + 5 PCB + 2 bottom thickness + 0.2 tolerance
     #   - After Elite-C: 7.4 = 2 top thickness + 3.4 PCB + 2 bottom thickness
-    case_base_height: float = 9  # 11
+
+    # tallest_internal_component_height: float = 5.0
+    case_inner_height: float = 5.1
 
     # Global clearance height
     clearance_height: float = 100
@@ -103,7 +105,12 @@ class CaseConfig:
     inner_volume_clearance: float = 0.4
 
     def __post_init__(self):
-        self.case_inner_height = self.case_base_height - 2 * self.case_thickness
+        self.case_base_height: float = (
+            self.case_bottom_wall_height + self.case_inner_height + self.case_top_wall_height
+        )
+        # self.case_inner_height = (
+        #     self.case_base_height - self.case_bottom_wall_height - self.case_top_wall_height
+        # )
 
 
 @dataclass
@@ -487,7 +494,7 @@ class MXSwitchHolderConfig:
             self.holder_bottom_height
             + self.switch_bottom_buffer_height
             + self.switch_bottom_height
-            - self.case_config.case_thickness
+            - self.case_config.case_top_wall_height
         )
 
         self.holder_height_to_socket_pin_top: float = (
@@ -500,7 +507,9 @@ class MXSwitchHolderConfig:
             self.cutoff_y - self.back_wrappers_and_separator_depth
         )
 
-        self.switch_hole_min_height: float = self.holder_height + self.case_config.case_thickness
+        self.switch_hole_min_height: float = (
+            self.holder_height + self.case_config.case_top_wall_height
+        )
 
         self.plate_front_hole_start_y: float = (
             -self.key_config.switch_hole_depth / 2 - self.plate_front_hole_depth
@@ -532,7 +541,7 @@ class MXSwitchHolderConfig:
 
         self.holder_total_height: float = (
             self.holder_height
-            + self.case_config.case_thickness
+            + self.case_config.case_top_wall_height
             - self.holder_lips_start_below_case_top
             + self.holder_side_lips_width
             + self.holder_side_lips_top_lip_height

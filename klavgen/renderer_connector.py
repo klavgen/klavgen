@@ -15,7 +15,7 @@ def render_connector(config: Config = Config()):
     # Center console
     center_console_depth = (
         config.case_config.switch_plate_gap_to_palm_rest / 2
-        + config.case_config.case_thickness
+        + config.case_config.case_side_wall_thickness
         + conn_config.horizontal_tolerance
     )
     connector = wp.box(
@@ -47,7 +47,8 @@ def render_connector_cutout(config: Config = Config()):
 
     # Center console
     center_console_depth = (
-        config.case_config.switch_plate_gap_to_palm_rest / 2 + config.case_config.case_thickness
+        config.case_config.switch_plate_gap_to_palm_rest / 2
+        + config.case_config.case_side_wall_thickness
     )
     connector_cutout = wp.box(
         conn_config.center_console_width + 2 * conn_config.horizontal_tolerance,
@@ -86,7 +87,7 @@ def render_case_connector_support(config: Config = Config()) -> (Any, Any):
         + 2 * conn_config.tab_support_wall_size
     )
     cutout_depth = (
-        config.case_config.case_thickness
+        config.case_config.case_side_wall_thickness
         + conn_config.end_tab_depth
         + 2 * conn_config.horizontal_tolerance
         + conn_config.tab_support_wall_size

@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
+
+import cadquery as cq
 
 from .rendering import Renderable
 
@@ -25,23 +27,23 @@ class Key(LocationOrientation):
 
 @dataclass
 class RenderedKey:
-    case_column: Any
-    case_clearance: Any
-    switch_rim: Any
-    keycap_clearance: Any
-    switch_hole: Any
-    fused_switch_holder: Any
-    fused_switch_holder_clearance: Any
-    debug: Any
+    case_column: cq.Workplane
+    case_clearance: cq.Workplane
+    switch_rim: cq.Workplane
+    keycap_clearance: cq.Workplane
+    switch_hole: cq.Workplane
+    fused_switch_holder: cq.Workplane
+    fused_switch_holder_clearance: cq.Workplane
+    debug: cq.Workplane
 
 
 @dataclass
 class RenderedKeyTemplates:
-    switch_hole: Any
-    case_clearance: Any
-    keycap_clearance: Any
-    fused_switch_holder: Any
-    fused_switch_holder_clearance: Any
+    switch_hole: cq.Workplane
+    case_clearance: cq.Workplane
+    keycap_clearance: cq.Workplane
+    fused_switch_holder: cq.Workplane
+    fused_switch_holder_clearance: cq.Workplane
 
 
 @dataclass
@@ -52,11 +54,11 @@ class ScrewHole(Renderable, LocationOrientation):
 
 @dataclass
 class RenderedScrewHole:
-    rim: Any
-    rim_bottom: Any
-    rim_inner_clearance: Any
-    hole: Any
-    debug: Any
+    rim: cq.Workplane
+    rim_bottom: cq.Workplane
+    rim_inner_clearance: cq.Workplane
+    hole: cq.Workplane
+    debug: cq.Workplane
 
 
 @dataclass
@@ -80,11 +82,11 @@ class Text(LocationOrientation):
 
 @dataclass
 class RenderedSideHolder:
-    case_column: Any
-    rail: Any
-    inner_clearance: Any
-    hole: Any
-    debug: Any
+    case_column: cq.Workplane
+    rail: cq.Workplane
+    inner_clearance: cq.Workplane
+    hole: cq.Workplane
+    debug: cq.Workplane
 
 
 @dataclass
@@ -114,6 +116,6 @@ class PalmRest:
 
 @dataclass
 class RenderedSwitchHolder:
-    switch_holder: Any
-    switch_holder_clearance: Any
-    socket: Any
+    switch_holder: cq.Workplane
+    switch_holder_clearance: Optional[cq.Workplane]
+    socket: cq.Workplane

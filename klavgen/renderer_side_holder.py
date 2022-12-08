@@ -12,9 +12,9 @@ def render_side_case_hole_rail(
 
     # We want the user coordinates to be at the point of exit from the case. We want to draw from the back of the
     # controller, so move the center
-    # base_wp = base_wp.center(0, -case_config.case_thickness - config.depth)
+    # base_wp = base_wp.center(0, -case_config.case_side_wall_thickness - config.depth)
 
-    total_depth = case_config.case_thickness + config.horizontal_tolerance + config.depth
+    total_depth = case_config.case_side_wall_thickness + config.horizontal_tolerance + config.depth
 
     # Case column (full-height), only adding margin to the back, not the front (where we have to add the case thickness)
     case_column = (
@@ -33,21 +33,23 @@ def render_side_case_hole_rail(
         base_wp.workplane(
             offset=-case_config.case_base_height + config.case_hole_start_from_case_bottom
         )
-        .center(0, -case_config.case_thickness - config.case_hole_depth_in_front_of_case_wall)
+        .center(
+            0, -case_config.case_side_wall_thickness - config.case_hole_depth_in_front_of_case_wall
+        )
         .box(
             config.case_hole_width,
             config.case_hole_clearance_depth,
             case_config.case_base_height
             - config.case_hole_start_from_case_bottom
-            - case_config.case_thickness,
+            - case_config.case_top_wall_height,
             centered=grow_yz,
         )
     )
 
     # Left rail
     rail_wp = base_wp.workplane(
-        offset=-case_config.case_base_height + case_config.case_thickness
-    ).center(0, -case_config.case_thickness)
+        offset=-case_config.case_base_height + case_config.case_bottom_wall_height
+    ).center(0, -case_config.case_side_wall_thickness)
 
     rail_left = (
         rail_wp.center(-config.rail_wall_width - config.width / 2 - config.horizontal_tolerance, 0)
@@ -81,7 +83,9 @@ def render_side_case_hole_rail(
 
     # Inner clearance
     inner_clearance = (
-        base_wp.workplane(offset=-case_config.case_base_height + case_config.case_thickness)
+        base_wp.workplane(
+            offset=-case_config.case_base_height + case_config.case_bottom_wall_height
+        )
         .center(0, -total_depth / 2)
         .box(
             config.width
@@ -131,10 +135,10 @@ def render_side_mount_bracket(
 
     if fill_case_wall_hole:
         case_wall_fill = wp.center(
-            0, -case_config.case_thickness - side_holder_config.horizontal_tolerance
+            0, -case_config.case_side_wall_thickness - side_holder_config.horizontal_tolerance
         ).box(
             side_holder_config.case_hole_width - 2 * side_holder_config.horizontal_tolerance,
-            case_config.case_thickness + side_holder_config.horizontal_tolerance,
+            case_config.case_side_wall_thickness + side_holder_config.horizontal_tolerance,
             case_config.case_inner_height - side_holder_config.vertical_tolerance,
             centered=grow_yz,
         )

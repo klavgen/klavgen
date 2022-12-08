@@ -22,11 +22,11 @@ def render_trrs_jack(controller: TRRSJack, config: Config) -> RenderResult:
         trrs_jack_lr = LocationOrientation(
             x=controller.x,
             y=controller.y
-            - config.case_config.case_thickness
+            - config.case_config.case_side_wall_thickness
             - config.controller_config.horizontal_tolerance,
             z=controller.z
             - config.case_config.case_base_height
-            + config.case_config.case_thickness,
+            + config.case_config.case_bottom_wall_height,
             rotate=controller.rotate,
             rotate_around=controller.rotate_around,
         )

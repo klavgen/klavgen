@@ -43,7 +43,7 @@ def _render_screw_hole(
 
     # Rim that should be added back to the bottom (=cut the top off)
     rim_bottom = base_wp.circle(config.screw_rim_radius).extrude(
-        screw_hole.z + case_config.case_base_height - case_config.case_thickness
+        screw_hole.z + case_config.case_base_height - case_config.case_top_wall_height
     )
 
     # Rim clearance
@@ -51,41 +51,47 @@ def _render_screw_hole(
         config.screw_rim_radius + case_config.inner_volume_clearance
     ).extrude(screw_hole.z + case_config.case_base_height)
 
-    # Hole below insert
+    # Vertical clearance above the top plate
     hole = (
-        base_wp.workplane(offset=case_config.case_thickness)
-        .circle(config.screw_hole_body_radius)
-        .extrude(
-            screw_hole.z
-            + case_config.case_base_height
-            - 2 * case_config.case_thickness
-            - config.screw_insert_depth
-        )
-    )
-
-    # Hole for insert
-    hole = (
-        hole.faces(">Z")
-        .workplane()
-        .circle(config.screw_insert_hole_width)
-        .extrude(config.screw_insert_depth)
-    )
-
-    # Hole for top plate
-    hole = (
-        hole.faces(">Z")
-        .workplane()
-        .circle(config.screw_hole_plate_radius)
-        .extrude(case_config.case_thickness)
-    )
-
-    # Vertical clearance on top for the head
-    hole = (
-        hole.faces(">Z")
-        .workplane()
+        base_wp.workplane(offset=screw_hole.z + case_config.case_base_height)
         .circle(config.screw_head_radius)
         .extrude(case_config.clearance_height)
     )
+
+    # Hole for top plate
+    hole_top = (
+        base_wp.workplane(
+            offset=screw_hole.z + case_config.case_base_height - case_config.case_top_wall_height
+        )
+        .circle(config.screw_hole_plate_radius)
+        .extrude(case_config.case_top_wall_height)
+    )
+    hole = hole.union(hole_top)
+
+    # Hole for insert
+    hole_insert = (
+        base_wp.workplane(
+            offset=screw_hole.z
+            + case_config.case_base_height
+            - case_config.case_top_wall_height
+            - config.screw_insert_depth
+        )
+        .circle(config.screw_insert_hole_width)
+        .extrude(config.screw_insert_depth)
+    )
+    hole = hole.union(hole_insert)
+
+    # Hole below insert
+    hole_below_insert_height = (
+        screw_hole.z + case_config.case_inner_height - config.screw_insert_depth
+    )
+    if hole_below_insert_height > 0:
+        hole_below_insert = (
+            base_wp.workplane(offset=case_config.case_bottom_wall_height)
+            .circle(config.screw_hole_body_radius)
+            .extrude(screw_hole.z + case_config.case_inner_height - config.screw_insert_depth)
+        )
+        hole = hole.union(hole_below_insert)
 
     # Debug: rim outline in the air
     debug = (

@@ -86,7 +86,7 @@ from .constants import (
 )
 
 # Methods
-from .keyboard import render_and_save_keyboard
+from .keyboard import export_keyboard_to_step, export_keyboard_to_stl, render_and_save_keyboard
 from .kle import generate_keys_from_kle_json
 from .renderer_case import (
     RenderCaseResult,

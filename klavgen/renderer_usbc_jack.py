@@ -22,7 +22,9 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
         usbc_jack_lr = LocationOrientation(
             x=usbc_jack.x,
             y=usbc_jack.y,
-            z=usbc_jack.z - config.case_config.case_base_height + config.case_config.case_thickness,
+            z=usbc_jack.z
+            - config.case_config.case_base_height
+            + config.case_config.case_bottom_wall_height,
             rotate=usbc_jack.rotate,
             rotate_around=usbc_jack.rotate_around,
         )
@@ -83,13 +85,13 @@ def render_usbc_jack_holder(config: Config = Config()):
 
     # Offset in negative Y to get to the start of the wall since we want the jack hole to go through the holder which
     # fills the wall hole
-    offset_y = -case_config.case_thickness - config.usbc_jack_config.horizontal_tolerance
+    offset_y = -case_config.case_side_wall_thickness - config.usbc_jack_config.horizontal_tolerance
 
     vertical_support_height = (holder_height - usbc_jack_config.jack_height) / 2
 
     jack_wp = wp.workplane(offset=vertical_support_height).center(0, offset_y)
     jack_depth = (
-        case_config.case_thickness
+        case_config.case_side_wall_thickness
         + config.usbc_jack_config.horizontal_tolerance
         + usbc_jack_config.holder_bracket_depth
         + usbc_jack_config.holder_depth_behind_bracket

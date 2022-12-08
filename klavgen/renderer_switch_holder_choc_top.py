@@ -1,5 +1,3 @@
-import math
-
 import cadquery as cq
 
 from .classes import RenderedSwitchHolder
@@ -23,12 +21,13 @@ def render_new_choc_switch_holder(socket, cf: ChocSwitchHolderConfig) -> Rendere
     # Base
     min_wall_size = 1
     extra_switch_bottom_buffer_height = 0.4
+    extra_switch_hole = 0.4
 
     wall_height = (
         cf.switch_bottom_buffer_height
         + extra_switch_bottom_buffer_height
         + cf.switch_bottom_height
-        - case_cf.case_thickness
+        - case_cf.case_top_wall_height
     )
 
     base_left_x = -9.2
@@ -58,14 +57,6 @@ def render_new_choc_switch_holder(socket, cf: ChocSwitchHolderConfig) -> Rendere
     )
 
     holder = holder.union(margin)
-
-    # Switch hole
-    switch_hole = (
-        wp.workplane(offset=socket_cf.socket_bump_height)
-        .rect(key_cf.switch_hole_width, key_cf.switch_hole_depth)
-        .extrude(wall_height)
-    )
-    holder = holder.cut(switch_hole)
 
     # Diode holder
     diode_x_center = 3.4
@@ -134,42 +125,36 @@ def render_new_choc_switch_holder(socket, cf: ChocSwitchHolderConfig) -> Rendere
     )
     holder = holder.union(col_row_wrapper)
 
-    # Diode front wire support
-    # diode_front_wire_support_x = 4.5
-    # diode_front_wire_support = (
-    #     wp_component.center(diode_front_wire_support_x, base_front_y)
-    #     .rect(base_right_x - diode_front_wire_support_x, 1, centered=False)
-    #     .extrude(components_height)
-    # )
-    # holder = holder.union(diode_front_wire_support)
+    # Switch hole
+    switch_hole = (
+        wp.workplane(offset=socket_cf.socket_bump_height)
+        .rect(
+            key_cf.switch_hole_width + 2 * extra_switch_hole,
+            key_cf.switch_hole_depth + 2 * extra_switch_hole,
+        )
+        .extrude(wall_height)
+    )
+    holder = holder.cut(switch_hole)
 
-    # Cut socket
+    # Plastic pin holes
+    plastic_pin_holes = render_switch_plastic_pin_holes(cf)
+    # holder = holder.cut(plastic_pin_holes)
+
+    # Socket hole
     socket_sweep = socket.faces("<Z").wires().toPending().extrude(-10)
     holder = holder.cut(socket_sweep)
-
-    # Cut plastic pins
-    plastic_pin_holes = render_switch_plastic_pin_holes(cf)
-    holder = holder.cut(plastic_pin_holes)
-
-    # Render switch bottom hole that's used to cut the margin
-    # switch_hole = wp.box(
-    #     key_cf.switch_hole_width,
-    #     key_cf.switch_hole_depth,
-    #     wall_height,
-    #     centered=grow_z,
-    # )
 
     clearance = switch_hole.union(plastic_pin_holes).union(socket_sweep)
 
     # Move in place
     holder = holder.translate(
-        (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_thickness)
+        (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_top_wall_height)
     )
     clearance = clearance.translate(
-        (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_thickness)
+        (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_top_wall_height)
     )
     socket = socket.translate(
-        (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_thickness)
+        (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_top_wall_height)
     )
 
     return RenderedSwitchHolder(holder, clearance, socket)

@@ -1,5 +1,6 @@
 import functools
-from typing import Any, List
+from collections.abc import Iterable
+from typing import Any, List, Union
 
 import cadquery as cq
 
@@ -68,8 +69,15 @@ def _cq_union_reductor(a, b):
     return None
 
 
-def union_list(objects: List[Any]):
+def union_list(*objects: Union[cq.Workplane, List[cq.Workplane]]):
     if objects:
-        return functools.reduce(_cq_union_reductor, objects)
+        flat_objects = []
+        for obj in objects:
+            if isinstance(obj, Iterable):
+                flat_objects.extend(obj)
+            else:
+                flat_objects.append(obj)
+
+        return functools.reduce(_cq_union_reductor, flat_objects)
     else:
         return None

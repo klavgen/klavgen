@@ -646,7 +646,7 @@ def render_angled_side_cutout(
 def render_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
     # Top side lips
 
-    holder_lips_base_height = case_config.case_thickness - cf.holder_lips_start_below_case_top
+    holder_lips_base_height = case_config.case_top_wall_height - cf.holder_lips_start_below_case_top
     holder_side_lips_total_height = (
         holder_lips_base_height + cf.holder_side_lips_width + cf.holder_side_lips_top_lip_height
     )
