@@ -104,6 +104,8 @@ class CaseConfig:
 
     inner_volume_clearance: float = 0.4
 
+    mirrored: bool = False
+
     def __post_init__(self):
         self.case_base_height: float = (
             self.case_bottom_wall_height + self.case_inner_height + self.case_top_wall_height

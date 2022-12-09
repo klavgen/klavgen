@@ -33,16 +33,19 @@ def render_key_templates(config: Config) -> RenderedKeyTemplates:
 
     fused_switch_holder = None
     fused_switch_holder_clearance = None
-    fused_switch_holder_mirrored = None
-    fused_switch_holder_clearance_mirrored = None
+    # fused_switch_holder_mirrored = None
+    # fused_switch_holder_clearance_mirrored = None
     if case_config.use_switch_holders and case_config.switch_type == SwitchType.CHOC:
         switch_holder_result = render_switch_holder(config)
+
         fused_switch_holder = switch_holder_result.switch_holder
         fused_switch_holder_clearance = switch_holder_result.switch_holder_clearance
-        fused_switch_holder_mirrored = switch_holder_result.switch_holder.mirror(mirrorPlane="YZ")
-        fused_switch_holder_clearance_mirrored = (
-            switch_holder_result.switch_holder_clearance.mirror(mirrorPlane="YZ")
-        )
+
+        if config.case_config.mirrored:
+            # We need to keep the switch holders in the same orientation, so we mirror here, so that after the whole
+            # case is mirrored they return to normal
+            fused_switch_holder = fused_switch_holder.mirror(mirrorPlane="YZ")
+            fused_switch_holder_clearance = fused_switch_holder_clearance.mirror(mirrorPlane="YZ")
 
     return RenderedKeyTemplates(
         switch_hole=render_switch_hole(case_config, switch_holder_config),
@@ -50,8 +53,6 @@ def render_key_templates(config: Config) -> RenderedKeyTemplates:
         keycap_clearance=render_keycap_clearance(key_config, case_config),
         fused_switch_holder=fused_switch_holder,
         fused_switch_holder_clearance=fused_switch_holder_clearance,
-        fused_switch_holder_mirrored=fused_switch_holder_mirrored,
-        fused_switch_holder_clearance_mirrored=fused_switch_holder_clearance_mirrored,
     )
 
 
@@ -149,18 +150,20 @@ def render_key(
 
     # Fused switch holder
     fused_switch_holder = templates.fused_switch_holder
-    fused_switch_holder_mirrored = templates.fused_switch_holder_mirrored
     if fused_switch_holder:
+        if not config.north_facing:
+            fused_switch_holder = fused_switch_holder.rotate((0, 0, 0), (0, 0, 1), 180)
+
         fused_switch_holder = position(fused_switch_holder, key)
-        fused_switch_holder_mirrored = position(fused_switch_holder_mirrored, key)
 
     fused_switch_holder_clearance = templates.fused_switch_holder_clearance
-    fused_switch_holder_clearance_mirrored = templates.fused_switch_holder_clearance_mirrored
     if fused_switch_holder_clearance:
+        if not config.north_facing:
+            fused_switch_holder_clearance = fused_switch_holder_clearance.rotate(
+                (0, 0, 0), (0, 0, 1), 180
+            )
+
         fused_switch_holder_clearance = position(fused_switch_holder_clearance, key)
-        fused_switch_holder_clearance_mirrored = position(
-            fused_switch_holder_clearance_mirrored, key
-        )
 
     # Debug: keycap outline in the air
     keycap_width = key.keycap_width or config.keycap_width
@@ -180,7 +183,5 @@ def render_key(
         switch_hole=switch_hole,
         fused_switch_holder=fused_switch_holder,
         fused_switch_holder_clearance=fused_switch_holder_clearance,
-        fused_switch_holder_mirrored=fused_switch_holder_mirrored,
-        fused_switch_holder_clearance_mirrored=fused_switch_holder_clearance_mirrored,
         debug=debug,
     )

@@ -34,8 +34,6 @@ class RenderCaseResult:
     switch_holes: Optional[cq.Workplane] = None
     fused_switch_holders: Optional[cq.Workplane] = None
     fused_switch_holder_clearances: Optional[cq.Workplane] = None
-    fused_switch_holders_mirrored: Optional[cq.Workplane] = None
-    fused_switch_holder_clearances_mirrored: Optional[cq.Workplane] = None
     inner_clearances: Optional[cq.Workplane] = None
     patches: Optional[cq.Workplane] = None
     cuts: Optional[cq.Workplane] = None
@@ -57,7 +55,6 @@ class RenderCaseResult:
     bottom_before_fillet: Optional[cq.Workplane] = None
     bottom: Optional[cq.Workplane] = None
     switch_holders: Optional[cq.Workplane] = None
-    switch_holders_mirrored: Optional[cq.Workplane] = None
     debug: Optional[cq.Workplane] = None
     standard_components: Optional[cq.Workplane] = None
     components: Optional[Dict[str, Dict[str, List[cq.Workplane]]]] = None
@@ -72,7 +69,6 @@ def render_case(
     case_extras: Optional[List[cq.Workplane]] = None,
     palm_rests: Optional[List[PalmRest]] = None,
     texts: Optional[List[Text]] = None,
-    mirror_switch_holders: bool = False,
     debug: bool = False,
     render_standard_components: bool = False,
     result: Optional[RenderCaseResult] = None,
@@ -88,8 +84,6 @@ def render_case(
     :param case_extras: A list of CadQuery objects to be added to the case. Can be used for custom outlines. Optional.
     :param palm_rests: A list of PalmRest objects that define palm rests (overlapping with keys is fine). Optional.
     :param texts: A list of Text objects with text to be drawn to either the top or palm rests. Optional.
-    :param mirror_switch_holders: Whether to also produce a mirrored version of the Choc switch holders. Needs to be
-                                  use on split keyboards where both sides are the same.
     :param debug: A boolean defining whether to run in debug mode which skips the finicky shell step (that produces
                   the empty internal volume of the case.
     :param render_standard_components: A boolean defining whether to render all the holders and connectors in the
@@ -186,18 +180,6 @@ def render_case(
     result.fused_switch_holder_clearances = union_list(
         [rk.fused_switch_holder_clearance for rk in rendered_keys]
     )
-
-    # Mirrored fused Choc switch holders for split keyboards
-    result.fused_switch_holders_mirrored = None
-    result.fused_switch_holder_clearances_mirrored = None
-    if mirror_switch_holders:
-        result.fused_switch_holders_mirrored = union_list(
-            [rk.fused_switch_holder_mirrored for rk in rendered_keys]
-        )
-
-        result.fused_switch_holder_clearances_mirrored = union_list(
-            [rk.fused_switch_holder_clearance_mirrored for rk in rendered_keys]
-        )
 
     result.debug = union_list([rendered_key.debug for rendered_key in rendered_keys])
 
@@ -571,28 +553,6 @@ def render_case(
 
         result.switch_holders = result.switch_holders.intersect(result.inner_volume_after_fillet)
 
-    # Mirrored fused Choc switch holders
-    result.switch_holders_mirrored = None
-    if result.fused_switch_holders_mirrored:
-        result.switch_holders_mirrored = result.fused_switch_holders_mirrored
-
-        if result.fused_switch_holder_clearances_mirrored:
-            result.switch_holders_mirrored = result.switch_holders_mirrored.cut(
-                result.fused_switch_holder_clearances_mirrored
-            )
-
-        if result.inner_clearances:
-            result.switch_holders_mirrored = result.switch_holders_mirrored.cut(
-                result.inner_clearances
-            )
-
-        result.switch_holders_mirrored = result.switch_holders_mirrored.intersect(
-            result.inner_volume_after_fillet
-        )
-
-        # Flip so the mirrored switch holders are in the right orientation
-        result.switch_holders_mirrored = result.switch_holders_mirrored.mirror(mirrorPlane="YZ")
-
     if result.shell_cut:
         result.bottom = result.bottom.cut(result.shell_cut)
 
@@ -714,32 +674,37 @@ def get_y_at_x_intersection(obj, x, highest_y=True):
 
 
 def export_case_to_stl(result: RenderCaseResult):
-    cq.exporters.export(result.top, "keyboard_top.stl")
-    cq.exporters.export(result.bottom, "keyboard_bottom.stl")
+    _export_case(result, "stl")
+
+
+def export_case_to_step(result: RenderCaseResult):
+    _export_case(result, "step")
+
+
+def _export_case(result: RenderCaseResult, extension: str):
+    save_item(result.config, result.top, "keyboard_top", extension)
+    save_item(result.config, result.bottom, "keyboard_bottom", extension)
 
     if result.palm_rests:
         if len(result.palm_rests) == 1:
-            cq.exporters.export(result.palm_rests[0], f"palm_rest.stl")
+            save_item(result.config, result.palm_rests[0], "palm_rest", extension)
         else:
             for index, palm_rest in enumerate(result.palm_rests):
-                cq.exporters.export(palm_rest, f"palm_rest_{index}.stl")
+                save_item(result.config, palm_rest, f"palm_rest_{index}", extension)
 
     if result.switch_holders:
         # Flip around Y so it's in printing orientation
         switch_holders_oriented = result.switch_holders.rotate((0, 0, 0), (0, 1, 0), 180)
-        cq.exporters.export(switch_holders_oriented, "switch_holders.stl")
-
-    if result.switch_holders_mirrored:
-        # Flip around Y so it's in printing orientation
-        switch_holders_mirrored_oriented = result.switch_holders_mirrored.rotate(
-            (0, 0, 0), (0, 1, 0), 180
-        )
-        cq.exporters.export(switch_holders_mirrored_oriented, "switch_holders_mirrored.stl")
+        save_item(result.config, switch_holders_oriented, "switch_holders", extension)
 
 
-def export_case_to_step(result: RenderCaseResult):
-    cq.exporters.export(result.top, "keyboard_top.step")
-    cq.exporters.export(result.bottom, "keyboard_bottom.step")
+def save_item(config: Config, item: cq.Workplane, file_name: str, extension: str):
+    if config.case_config.mirrored:
+        item = item.mirror(mirrorPlane="YZ")
+
+    suffix = "_mirrored" if config.case_config.mirrored else ""
+
+    cq.exporters.export(item, f"{file_name}{suffix}.{extension}")
 
 
 def move_top(top):

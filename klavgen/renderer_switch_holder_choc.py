@@ -146,7 +146,7 @@ def render_switch_holder_choc(socket, cf: ChocSwitchHolderConfig) -> RenderedSwi
 
     clearance = switch_hole.union(plastic_pin_holes).union(socket_sweep)
 
-    # Move in place vertically
+    # Rotate to be south-facing and move in place vertically
     holder = holder.translate(
         (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_top_wall_height)
     )
@@ -156,11 +156,6 @@ def render_switch_holder_choc(socket, cf: ChocSwitchHolderConfig) -> RenderedSwi
     socket = socket.translate(
         (0, 0, -socket_cf.socket_bump_height - wall_height - case_cf.case_top_wall_height)
     )
-
-    # TODO: Make this configurable
-    # holder = holder.mirror(mirrorPlane="YZ")
-    # clearance = clearance.mirror(mirrorPlane="YZ")
-    # socket = socket.mirror(mirrorPlane="YZ")
 
     return RenderedSwitchHolder(holder, clearance, socket)
 
