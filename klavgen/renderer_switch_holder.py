@@ -6,7 +6,7 @@ from .classes import RenderedSwitchHolder
 from .config import CaseConfig, Config, MXSwitchHolderConfig, SwitchType
 from .renderer_kailh_choc_socket import draw_choc_socket
 from .renderer_kailh_mx_socket import draw_mx_socket
-from .renderer_switch_holder_choc_top import render_new_choc_switch_holder
+from .renderer_switch_holder_choc import render_switch_holder_choc
 from .utils import grow_yz, grow_z, union_list
 
 
@@ -70,7 +70,7 @@ def render_switch_holder(
     if config.case_config.switch_type == SwitchType.MX:
         return render_mx_switch_holder(config, orient_for_printing)
     else:
-        return render_choc_switch_holder(config, orient_for_printing)
+        return render_choc_switch_holder(config)
 
 
 def render_mx_switch_holder(
@@ -85,17 +85,10 @@ def render_mx_switch_holder(
     )
 
 
-def render_choc_switch_holder(
-    config: Config = Config(), orient_for_printing=True
-) -> RenderedSwitchHolder:
+def render_choc_switch_holder(config: Config = Config()) -> RenderedSwitchHolder:
     wp = cq.Workplane("XY")
     socket = draw_choc_socket(wp, config)
-    return render_new_choc_switch_holder(socket, config.switch_holder_choc_config)
-    # return _render_switch_holder(
-    #     socket=socket,
-    #     cf=config.switch_holder_choc_config,
-    #     orient_for_printing=orient_for_printing,
-    # )
+    return render_switch_holder_choc(socket=socket, cf=config.switch_holder_choc_config)
 
 
 def _render_switch_holder(

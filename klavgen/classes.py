@@ -34,6 +34,8 @@ class RenderedKey:
     switch_hole: cq.Workplane
     fused_switch_holder: cq.Workplane
     fused_switch_holder_clearance: cq.Workplane
+    fused_switch_holder_mirrored: cq.Workplane
+    fused_switch_holder_clearance_mirrored: cq.Workplane
     debug: cq.Workplane
 
 
@@ -44,6 +46,8 @@ class RenderedKeyTemplates:
     keycap_clearance: cq.Workplane
     fused_switch_holder: cq.Workplane
     fused_switch_holder_clearance: cq.Workplane
+    fused_switch_holder_mirrored: cq.Workplane
+    fused_switch_holder_clearance_mirrored: cq.Workplane
 
 
 @dataclass
