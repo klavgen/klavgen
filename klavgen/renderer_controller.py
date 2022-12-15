@@ -1,17 +1,62 @@
 import cadquery as cq
 
-from .classes import Controller, RenderedSideHolder
-from .config import CaseConfig, Config, ControllerConfig
+from .classes import Controller, LocationOrientation
+from .config import Config
 from .renderer_side_holder import render_side_case_hole_rail, render_side_mount_bracket
-from .utils import grow_yz
+from .rendering import (
+    RENDERERS,
+    RenderedItem,
+    RenderingPipelineStage,
+    RenderResult,
+    SeparateComponentRender,
+)
+from .utils import grow_yz, position
 
 
-def render_controller_case_cutout_and_support(
-    controller: Controller,
-    config: ControllerConfig = ControllerConfig(),
-    case_config: CaseConfig = CaseConfig(),
-) -> RenderedSideHolder:
-    return render_side_case_hole_rail(controller, config, case_config)
+def render_controller(controller: Controller, config: Config) -> RenderResult:
+    result = render_side_case_hole_rail(controller, config.controller_config, config.case_config)
+
+    def render_in_place():
+        controller_holder = render_controller_holder(config)
+
+        controller_lr = LocationOrientation(
+            x=controller.x,
+            y=controller.y
+            - config.case_config.case_side_wall_thickness
+            - config.controller_config.horizontal_tolerance,
+            z=controller.z
+            - config.case_config.case_base_height
+            + config.case_config.case_bottom_wall_height,
+            rotate=controller.rotate,
+            rotate_around=controller.rotate_around,
+        )
+
+        return position(controller_holder, controller_lr)
+
+    return RenderResult(
+        name=controller.name or "controller",
+        items=[
+            RenderedItem(result.case_column, pipeline_stage=RenderingPipelineStage.CASE_SOLID),
+            RenderedItem(
+                result.rail, pipeline_stage=RenderingPipelineStage.BOTTOM_AFTER_SHELL_ADDITIONS
+            ),
+            RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTOUTS),
+            RenderedItem(
+                result.inner_clearance, pipeline_stage=RenderingPipelineStage.INNER_CLEARANCES
+            ),
+            RenderedItem(result.debug, pipeline_stage=RenderingPipelineStage.DEBUG),
+        ],
+        separate_components=[
+            SeparateComponentRender(
+                name="controller_holder",
+                render_func=lambda: render_controller_holder(config),
+                render_in_place_func=render_in_place,
+            )
+        ],
+    )
+
+
+RENDERERS.set_renderer("controller", render_controller)
 
 
 def render_controller_holder(config: Config = Config()):
@@ -19,6 +64,11 @@ def render_controller_holder(config: Config = Config()):
 
     wp = cq.Workplane("XY")
     wp_yz = cq.Workplane("YZ")
+
+    holder_height = config.case_config.case_inner_height - c_config.vertical_tolerance
+
+    # Determine base height as the remainder between the holder height and the controller height, in the range 0 to 1
+    base_height = max(0, min(1, holder_height - c_config.controller_height))
 
     # Mount bracket
 
@@ -29,7 +79,7 @@ def render_controller_holder(config: Config = Config()):
     # Side and back supports wrapper
 
     sides_and_back_support_height = (
-        c_config.base_height + c_config.pcb_lips_z_from_pcb_bottom + c_config.pcb_lips_height
+        base_height + c_config.pcb_lips_z_from_pcb_bottom + c_config.pcb_lips_height
     )
 
     side_back_supports_wp = wp.center(0, c_config.holder_bracket_depth)
@@ -45,7 +95,7 @@ def render_controller_holder(config: Config = Config()):
 
     # PCB hole
 
-    pcb_hole = side_back_supports_wp.workplane(offset=c_config.base_height).box(
+    pcb_hole = side_back_supports_wp.workplane(offset=base_height).box(
         c_config.item_width,
         c_config.item_depth,
         sides_and_back_support_height,
@@ -56,23 +106,25 @@ def render_controller_holder(config: Config = Config()):
 
     # Base holes
 
-    base_hole_width = (
-        c_config.item_width / 2 - c_config.base_side_width - c_config.base_center_width / 2
-    )
-    base_hole_depth = c_config.item_depth - c_config.base_front_depth - c_config.base_back_depth
+    if base_height > 0:
+        base_hole_width = (
+            c_config.item_width / 2 - c_config.base_side_width - c_config.base_center_width / 2
+        )
+        base_hole_depth = c_config.item_depth - c_config.base_front_depth - c_config.base_back_depth
 
-    base_hole_left = wp.center(
-        -c_config.base_center_width / 2 - base_hole_width,
-        c_config.holder_bracket_depth + c_config.base_front_depth,
-    ).box(base_hole_width, base_hole_depth, c_config.base_height, centered=False)
+        base_hole_left = wp.center(
+            -c_config.base_center_width / 2 - base_hole_width,
+            c_config.holder_bracket_depth + c_config.base_front_depth,
+        ).box(base_hole_width, base_hole_depth, base_height, centered=False)
 
-    holder = holder.cut(base_hole_left)
+        holder = holder.cut(base_hole_left)
 
-    base_hole_right = wp.center(
-        c_config.base_center_width / 2, c_config.holder_bracket_depth + c_config.base_front_depth
-    ).box(base_hole_width, base_hole_depth, c_config.base_height, centered=False)
+        base_hole_right = wp.center(
+            c_config.base_center_width / 2,
+            c_config.holder_bracket_depth + c_config.base_front_depth,
+        ).box(base_hole_width, base_hole_depth, base_height, centered=False)
 
-    holder = holder.cut(base_hole_right)
+        holder = holder.cut(base_hole_right)
 
     # Front PCB lips
 
@@ -80,7 +132,7 @@ def render_controller_holder(config: Config = Config()):
         wp_yz.workplane(offset=-c_config.item_width / 2 + c_config.pcb_lips_front_side_inset)
         .center(
             c_config.holder_bracket_depth,
-            c_config.base_height + c_config.pcb_lips_z_from_pcb_bottom,
+            base_height + c_config.pcb_lips_z_from_pcb_bottom,
         )
         .lineTo(c_config.pcb_lips_depth, c_config.pcb_lips_depth)
         .lineTo(c_config.pcb_lips_depth, c_config.pcb_lips_height - c_config.pcb_lips_depth)
@@ -97,7 +149,7 @@ def render_controller_holder(config: Config = Config()):
         wp_yz.workplane(offset=-c_config.pcb_lips_back_width / 2)
         .center(
             c_config.holder_bracket_depth + c_config.item_depth,
-            c_config.base_height + c_config.pcb_lips_z_from_pcb_bottom,
+            base_height + c_config.pcb_lips_z_from_pcb_bottom,
         )
         .lineTo(-c_config.pcb_lips_depth, c_config.pcb_lips_depth)
         .lineTo(-c_config.pcb_lips_depth, c_config.pcb_lips_height - c_config.pcb_lips_depth)
@@ -110,7 +162,7 @@ def render_controller_holder(config: Config = Config()):
 
     # USB port hole on front
     usb_port_hole = wp.workplane(
-        offset=c_config.base_height + c_config.usb_port_hole_start_height_from_pcb_bottom
+        offset=base_height + c_config.usb_port_hole_start_height_from_pcb_bottom
     ).box(
         c_config.usb_port_hole_width,
         c_config.holder_bracket_depth + c_config.pcb_lips_depth,

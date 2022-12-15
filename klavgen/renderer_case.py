@@ -2,24 +2,13 @@ import importlib
 import math
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import cadquery as cq
 
 from . import renderer_controller, renderer_trrs_jack
-from .classes import (
-    Controller,
-    Cut,
-    Key,
-    LocationOrientation,
-    PalmRest,
-    Patch,
-    Renderable,
-    ScrewHole,
-    Text,
-    TrrsJack,
-)
-from .config import Config
+from .classes import Cut, Key, LocationOrientation, PalmRest, Patch, Renderable, Text
+from .config import Config, SwitchType
 from .renderer_connector import (
     render_case_connector_support,
     render_connector,
@@ -29,7 +18,6 @@ from .renderer_cut import render_cut
 from .renderer_key import render_key, render_key_templates
 from .renderer_palm_rest import render_palm_rest
 from .renderer_patch import render_patch
-from .renderer_screw_hole import render_screw_hole
 from .renderer_switch_holder import render_switch_holder
 from .renderer_text import render_text
 from .rendering import RENDERERS, RenderingPipelineStage, SeparateComponentRender
@@ -37,52 +25,48 @@ from .utils import position, union_list
 
 importlib.reload(renderer_controller)
 importlib.reload(renderer_trrs_jack)
-from .renderer_controller import render_controller_case_cutout_and_support, render_controller_holder
-from .renderer_trrs_jack import render_trrs_jack_case_cutout_and_support, render_trrs_jack_holder
 
 
 @dataclass
 class RenderCaseResult:
+    config: Optional[Config] = None
     keys: Optional[List[Key]] = (None,)
-    switch_holes: Any = None
-    screw_hole_rims: Any = None
-    patches: Any = None
-    cuts: Any = None
-    case_extras: Any = None
-    controller_hole: Any = None
-    controller_rail: Any = None
-    trrs_jack_hole: Any = None
-    trrs_jack_rail: Any = None
-    case_before_fillet: Any = None
-    top_before_fillet: Any = None
-    vertical_clearance_before_fillet: Any = None
-    case_after_fillet: Any = None
-    case_after_shell: Any = None
-    shell_cut: Any = None
-    top: Any = None
-    palm_rests_before_case_clearance: Optional[List[Any]] = None
-    palm_rests_before_fillet: Optional[List[Any]] = None
-    palm_rests_after_side_fillet: Optional[List[Any]] = None
-    palm_rests_after_fillet: Optional[List[Any]] = None
-    palm_rests: Optional[List[Any]] = None
-    case_with_rests_before_fillet: Any = None
-    bottom_before_fillet: Any = None
-    bottom: Any = None
-    debug: Any = None
-    standard_components: Any = None
-    components: Optional[Dict[str, Dict[str, List[Any]]]] = None
+    switch_holes: Optional[cq.Workplane] = None
+    fused_switch_holders: Optional[cq.Workplane] = None
+    fused_switch_holder_clearances: Optional[cq.Workplane] = None
+    inner_clearances: Optional[cq.Workplane] = None
+    patches: Optional[cq.Workplane] = None
+    cuts: Optional[cq.Workplane] = None
+    case_extras: Optional[cq.Workplane] = None
+    case_before_fillet: Optional[cq.Workplane] = None
+    top_before_fillet: Optional[cq.Workplane] = None
+    vertical_clearance_before_fillet: Optional[cq.Workplane] = None
+    case_after_fillet: Optional[cq.Workplane] = None
+    inner_volume_after_fillet: Optional[cq.Workplane] = None
+    case_after_shell: Optional[cq.Workplane] = None
+    shell_cut: Optional[cq.Workplane] = None
+    top: Optional[cq.Workplane] = None
+    palm_rests_before_case_clearance: Optional[List[cq.Workplane]] = None
+    palm_rests_before_fillet: Optional[List[cq.Workplane]] = None
+    palm_rests_after_side_fillet: Optional[List[cq.Workplane]] = None
+    palm_rests_after_fillet: Optional[List[cq.Workplane]] = None
+    palm_rests: Optional[List[cq.Workplane]] = None
+    case_with_rests_before_fillet: Optional[cq.Workplane] = None
+    bottom_before_fillet: Optional[cq.Workplane] = None
+    bottom: Optional[cq.Workplane] = None
+    switch_holders: Optional[cq.Workplane] = None
+    debug: Optional[cq.Workplane] = None
+    standard_components: Optional[cq.Workplane] = None
+    components: Optional[Dict[str, Dict[str, List[cq.Workplane]]]] = None
     separate_components: Optional[List[SeparateComponentRender]] = None
 
 
 def render_case(
     keys: List[Key],
-    screw_holes: Optional[List[ScrewHole]] = None,
-    controller: Optional[Controller] = None,
-    trrs_jack: Optional[TrrsJack] = None,
     components: Optional[List[Renderable]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
-    case_extras: Optional[List[Any]] = None,
+    case_extras: Optional[List[cq.Workplane]] = None,
     palm_rests: Optional[List[PalmRest]] = None,
     texts: Optional[List[Text]] = None,
     debug: bool = False,
@@ -94,9 +78,6 @@ def render_case(
     The core method that renders the keyboard case.
 
     :param keys: A list of Key objects defining the key positions. Required.
-    :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
-    :param controller: A Controller object defining where the controller back center is. Optional.
-    :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
     :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
@@ -117,26 +98,29 @@ def render_case(
     if not result:
         result = RenderCaseResult()
 
+    result.config = config
     result.keys = keys
 
     case_config = config.case_config
-    switch_holder_config = config.get_switch_holder_config()
     key_config = config.get_key_config()
 
     assert (
         case_config.switch_plate_top_fillet is None
-        or case_config.switch_plate_top_fillet < case_config.case_thickness
-    ), "Switch plate top fillet (switch_plate_top_fillet) needs to be smaller than case thickness (case_thickness)"
+        or case_config.switch_plate_top_fillet < case_config.case_top_wall_height
+    ), (
+        "Switch plate top fillet (switch_plate_top_fillet) needs to be smaller than case top wall height "
+        "(case_top_wall_height)"
+    )
 
     if case_config.side_fillet:
         assert (
-            abs(case_config.side_fillet - case_config.case_thickness) >= 0.01
-        ), "Side fillet needs to be at least 0.01 above or below case thickness"
+            abs(case_config.side_fillet - case_config.case_side_wall_thickness) >= 0.01
+        ), "Side fillet needs to be at least 0.01 above or below case thickness (case_side_wall_thickness)"
 
-    key_templates = render_key_templates(case_config, switch_holder_config)
+    key_templates = render_key_templates(config)
 
     # Do rendering
-    stage_rendered_components: Dict[RenderingPipelineStage, List[Any]] = defaultdict(list)
+    stage_rendered_components: Dict[RenderingPipelineStage, List[cq.Workplane]] = defaultdict(list)
     result.separate_components = []
     result.components = {}
     if components:
@@ -169,20 +153,6 @@ def render_case(
                 result.separate_components.extend(render_result.separate_components)
 
     rendered_keys = [render_key(key, key_templates, case_config, key_config) for key in keys]
-    rendered_screw_holes = [
-        render_screw_hole(screw_hole, config.screw_hole_config, case_config)
-        for screw_hole in (screw_holes or [])
-    ]
-    rendered_controller = (
-        render_controller_case_cutout_and_support(controller, config.controller_config, case_config)
-        if controller
-        else None
-    )
-    rendered_trrs_jack = (
-        render_trrs_jack_case_cutout_and_support(trrs_jack, config.trrs_jack_config, case_config)
-        if trrs_jack
-        else None
-    )
     rendered_patches = [render_patch(patch, case_config) for patch in (patches or [])]
     rendered_cuts = [render_cut(cut, case_config) for cut in (cuts or [])]
     rendered_palm_rests = [
@@ -197,28 +167,6 @@ def render_case(
         + stage_rendered_components[RenderingPipelineStage.CASE_SOLID]
     )
 
-    # case_columns = case_columns + stage_rendered_components.get(RenderingPipelineStage.CASE_SOLID)
-
-    if rendered_controller:
-        case_columns = case_columns.union(rendered_controller.case_column)
-        result.controller_rail = rendered_controller.rail
-        result.controller_hole = rendered_controller.hole
-    else:
-        result.controller_rail = None
-        result.controller_hole = None
-
-    if rendered_trrs_jack:
-        case_columns = case_columns.union(rendered_trrs_jack.case_column)
-        result.trrs_jack_rail = rendered_trrs_jack.rail
-        result.trrs_jack_hole = rendered_trrs_jack.hole
-    else:
-        result.trrs_jack_rail = None
-        result.trrs_jack_hole = None
-
-    result.screw_hole_rims = None
-    if rendered_screw_holes:
-        result.screw_hole_rims = union_list([rsh.rim for rsh in rendered_screw_holes])
-
     case_clearances = union_list([rk.case_clearance for rk in rendered_keys])
 
     switch_rims = union_list([rk.switch_rim for rk in rendered_keys])
@@ -227,24 +175,13 @@ def render_case(
 
     result.switch_holes = union_list([rk.switch_hole for rk in rendered_keys])
 
-    for screw_hole in rendered_screw_holes:
-        result.switch_holes = result.switch_holes.union(screw_hole.hole)
+    # Fused Choc switch holders
+    result.fused_switch_holders = union_list([rk.fused_switch_holder for rk in rendered_keys])
+    result.fused_switch_holder_clearances = union_list(
+        [rk.fused_switch_holder_clearance for rk in rendered_keys]
+    )
 
-    switch_debug = None
-    for rendered_key in rendered_keys:
-        if rendered_key.debug:
-            if switch_debug:
-                switch_debug = switch_debug.union(rendered_key.debug)
-            else:
-                switch_debug = rendered_key.debug
-
-    screw_hole_debug = None
-    for rendered_screw_hole in rendered_screw_holes:
-        if rendered_screw_hole.debug:
-            if screw_hole_debug:
-                screw_hole_debug = screw_hole_debug.union(rendered_screw_hole.debug)
-            else:
-                screw_hole_debug = rendered_screw_hole.debug
+    result.debug = union_list([rendered_key.debug for rendered_key in rendered_keys])
 
     if rendered_patches:
         result.patches = union_list(rendered_patches)
@@ -266,14 +203,12 @@ def render_case(
         case = case.union(result.case_extras)
     case = case.cut(case_clearances)
     case = case.union(switch_rims).clean()
-    if result.screw_hole_rims:
-        case = case.union(result.screw_hole_rims)
     case = case.cut(keycap_clearances).clean()
 
     result.case_before_fillet = case
 
     result.top_before_fillet = result.case_before_fillet.copyWorkplane(
-        cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
+        cq.Workplane("XY").workplane(offset=-case_config.case_top_wall_height)
     ).split(keepTop=True)
 
     # The switch part of the case extended vertically to cut any higher palm rest
@@ -301,33 +236,72 @@ def render_case(
     else:
         result.case_after_fillet = result.case_before_fillet
 
+    result.inner_volume_after_fillet = (
+        result.case_after_fillet.faces("<Z")
+        .wires()
+        .toPending()
+        .offset2D(
+            -case_config.case_side_wall_thickness - case_config.inner_volume_clearance,
+            kind="intersection",
+        )
+        .extrude(case_config.case_inner_height, combine=False)
+        .translate((0, 0, case_config.case_bottom_wall_height))
+    )
+
     if not debug:
         try:
-            result.case_after_shell = result.case_after_fillet.shell(
-                thickness=-case_config.case_thickness
-            ).clean()
-
+            result.shell_cut = (
+                result.case_after_fillet.faces("<Z")
+                .wires()
+                .toPending()
+                .offset2D(-case_config.case_side_wall_thickness, kind="intersection")
+                .extrude(case_config.case_inner_height, combine=False)
+                .translate((0, 0, case_config.case_bottom_wall_height))
+            )
         except Exception:
             print(
-                "The case shell step failed, which likely means your keyboard is not continuous or there are very "
-                "sharp angles. To troubleshoot, pass in the result param and inspect result.case_after_fillet."
+                "The case side wall generation step failed, which likely means your keyboard is not continuous or "
+                "there are very sharp angles. To troubleshoot, pass in the result param and inspect "
+                "result.case_after_fillet."
             )
             raise
 
         try:
-            result.shell_cut = result.case_after_fillet.cut(result.case_after_shell)
+            result.case_after_shell = result.case_after_fillet.cut(result.shell_cut)
         except Exception:
             print(
-                "The case inner volume step failed, which likely means the shell step produced invalid results. To "
-                "troubleshoot, pass in the result param and inspect result.case_after_shell."
+                "The case inner volume removal step failed, which likely means the side wall generation step "
+                "produced invalid results. To troubleshoot, pass in the result param and inspect "
+                "result.case_after_shell and result.shell_cut."
             )
             raise
+
+        # try:
+        #     result.case_after_shell = result.case_after_fillet.shell(
+        #         thickness=-case_config.case_side_wall_thickness
+        #     ).clean()
+        #
+        # except Exception:
+        #     print(
+        #         "The case shell step failed, which likely means your keyboard is not continuous or there are very "
+        #         "sharp angles. To troubleshoot, pass in the result param and inspect result.case_after_fillet."
+        #     )
+        #     raise
+        #
+        # try:
+        #     result.shell_cut = result.case_after_fillet.cut(result.case_after_shell)
+        # except Exception:
+        #     print(
+        #         "The case inner volume step failed, which likely means the shell step produced invalid results. To "
+        #         "troubleshoot, pass in the result param and inspect result.case_after_shell."
+        #     )
+        #     raise
     else:
         result.case_after_shell = None
         result.shell_cut = None
 
     result.top = result.case_after_fillet.copyWorkplane(
-        cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
+        cq.Workplane("XY").workplane(offset=-case_config.case_top_wall_height)
     ).split(keepTop=True)
 
     if case_config.switch_plate_top_fillet and not debug:
@@ -408,7 +382,10 @@ def render_case(
 
             connector_template = render_connector(config)
             connector_cutout_template = render_connector_cutout(config)
-            case_connector_support_template = render_case_connector_support(config)
+            (
+                case_connector_support_template,
+                case_connector_support_clearance_template,
+            ) = render_case_connector_support(config)
 
             for palm_rest_tuple in zip(rendered_palm_rests, palm_rests):
                 palm_rest_before_case_clearance, palm_rest = palm_rest_tuple
@@ -507,6 +484,13 @@ def render_case(
                         case_connector_support = position(
                             case_connector_support_template, connector_location
                         )
+                        case_connector_support_clearance = position(
+                            case_connector_support_clearance_template, connector_location
+                        )
+
+                        result.inner_clearances = union_list(
+                            [result.inner_clearances, case_connector_support_clearance]
+                        )
 
                         final_palm_rest = final_palm_rest.cut(connector_cutout)
 
@@ -520,8 +504,20 @@ def render_case(
 
                 result.palm_rests.append(final_palm_rest)
 
+    # Collect component inner clearances
+    stage_inner_clearances = union_list(
+        stage_rendered_components[RenderingPipelineStage.INNER_CLEARANCES]
+    )
+    if stage_inner_clearances:
+        result.inner_clearances = union_list([result.inner_clearances, stage_inner_clearances])
+
+    if result.inner_clearances:
+        result.inner_volume_after_fillet = result.inner_volume_after_fillet.cut(
+            result.inner_clearances
+        )
+
     result.bottom_before_fillet = result.case_with_rests_before_fillet.copyWorkplane(
-        cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
+        cq.Workplane("XY").workplane(offset=-case_config.case_top_wall_height)
     ).split(keepBottom=True)
 
     if case_config.side_fillet and not debug:
@@ -535,45 +531,30 @@ def render_case(
     if result.palm_rests_after_fillet and not case_config.detachable_palm_rests:
         result.bottom = result.bottom.union(result.palm_rests_after_fillet[0])
 
+    # Remove component cutouts from top
+    top_cutouts = union_list(stage_rendered_components[RenderingPipelineStage.TOP_CUTOUTS])
+    if top_cutouts:
+        result.top = result.top.cut(top_cutouts)
+
     result.top = result.top.cut(result.switch_holes).clean()
 
-    # Debugs
-    if switch_debug:
-        result.debug = result.debug.union(switch_debug) if result.debug else switch_debug
+    result.debug = union_list(result.debug, stage_rendered_components[RenderingPipelineStage.DEBUG])
 
-    if screw_hole_debug:
-        result.debug = result.debug.union(screw_hole_debug) if result.debug else screw_hole_debug
+    # Fused Choc switch holder
+    result.switch_holders = None
+    if result.fused_switch_holders:
+        result.switch_holders = result.fused_switch_holders
 
-    if rendered_controller and rendered_controller.debug:
-        result.debug = (
-            result.debug.union(rendered_controller.debug)
-            if result.debug
-            else rendered_controller.debug
-        )
+        if result.fused_switch_holder_clearances:
+            result.switch_holders = result.switch_holders.cut(result.fused_switch_holder_clearances)
 
-    if rendered_trrs_jack and rendered_trrs_jack.debug:
-        result.debug = (
-            result.debug.union(rendered_trrs_jack.debug)
-            if result.debug
-            else rendered_trrs_jack.debug
-        )
+        if result.inner_clearances:
+            result.switch_holders = result.switch_holders.cut(result.inner_clearances)
 
-    debug_items = union_list(stage_rendered_components[RenderingPipelineStage.DEBUG])
-    if debug_items:
-        result.debug = result.debug.union(debug_items) if result.debug else debug_items
-
-    cuts = union_list(stage_rendered_components[RenderingPipelineStage.BOTTOM_CUTS])
-    if cuts:
-        result.bottom = result.bottom.cut(cuts)
+        result.switch_holders = result.switch_holders.intersect(result.inner_volume_after_fillet)
 
     if result.shell_cut:
         result.bottom = result.bottom.cut(result.shell_cut)
-
-    if result.controller_hole:
-        result.bottom = result.bottom.cut(result.controller_hole)
-
-    if result.trrs_jack_hole:
-        result.bottom = result.bottom.cut(result.trrs_jack_hole)
 
     for connector_cut in connector_cutouts:
         result.bottom = result.bottom.cut(connector_cut)
@@ -581,26 +562,30 @@ def render_case(
     for connector_support in case_connector_supports:
         result.bottom = result.bottom.union(connector_support)
 
-    # Add back screw hole rims
-    if result.screw_hole_rims:
-        result.screw_hole_rims_bottom = result.screw_hole_rims.copyWorkplane(
-            cq.Workplane("XY").workplane(offset=-case_config.case_thickness)
-        ).split(keepBottom=True)
-
-        result.bottom = result.bottom.union(result.screw_hole_rims_bottom)
-
-    additions = union_list(stage_rendered_components[RenderingPipelineStage.AFTER_SHELL_ADDITIONS])
+    # Add component additions to bottom
+    additions = union_list(
+        stage_rendered_components[RenderingPipelineStage.BOTTOM_AFTER_SHELL_ADDITIONS]
+    )
     if additions:
         result.bottom = result.bottom.union(additions)
 
-    if result.controller_rail:
-        result.bottom = result.bottom.union(result.controller_rail)
+    # Remove component cutouts from bottom
+    cuts = union_list(stage_rendered_components[RenderingPipelineStage.BOTTOM_CUTOUTS])
+    if cuts:
+        result.bottom = result.bottom.cut(cuts)
 
-    if result.trrs_jack_rail:
-        result.bottom = result.bottom.union(result.trrs_jack_rail)
-
-    # This also contains screw holes
     result.bottom = result.bottom.cut(result.switch_holes).clean()
+
+    # TODO: remove
+    # Add 1.2 mm bottom platform for the switch holders to rest on
+    platform = (
+        result.inner_volume_after_fillet.faces(">Z")
+        .wires()
+        .toPending()
+        .extrude(1.2, combine=False)
+        .translate((0, 0, -case_config.case_inner_height))
+    )
+    result.bottom = result.bottom.union(platform)
 
     if rendered_texts:
         top_texts = []
@@ -621,7 +606,7 @@ def render_case(
                     # Intersects or on top of palm rest
                     result.palm_rests[index] = palm_rest.union(text)
 
-        # Remove keycap clearances and switch/screw holes from top
+        # Remove keycap clearances and switch holes from top
         if top_texts:
             top_text_union = top_texts[0]
             for top_text in top_texts[1:]:
@@ -633,7 +618,7 @@ def render_case(
 
     if render_standard_components:
         # Add switch holders
-        if case_config.use_switch_holders:
+        if case_config.use_switch_holders and case_config.switch_type == SwitchType.MX:
             switch_holder_template = render_switch_holder(
                 config, orient_for_printing=False
             ).switch_holder
@@ -646,47 +631,11 @@ def render_case(
                 switch_holder_lr = LocationOrientation(
                     x=key.x,
                     y=key.y,
-                    z=key.z - case_config.case_thickness - switch_holder_config.holder_height,
+                    z=key.z - case_config.case_top_wall_height - switch_holder_config.holder_height,
                     rotate=key.rotate,
                     rotate_around=key.rotate_around,
                 )
                 standard_components.append(position(switch_holder_template, switch_holder_lr))
-
-        # Add controller holder
-        if controller:
-            controller_config = config.controller_config
-
-            controller_holder = render_controller_holder(config).translate(
-                (0, -case_config.case_thickness - controller_config.horizontal_tolerance, 0)
-            )
-
-            controller_lr = LocationOrientation(
-                x=controller.x,
-                y=controller.y,
-                z=controller.z - case_config.case_base_height + case_config.case_thickness,
-                rotate=controller.rotate,
-                rotate_around=controller.rotate_around,
-            )
-
-            standard_components.append(position(controller_holder, controller_lr))
-
-        # Add TRRS jack holder
-        if trrs_jack:
-            trrs_jack_config = config.trrs_jack_config
-
-            trrs_jack_holder = render_trrs_jack_holder(trrs_jack_config).translate(
-                (0, -case_config.case_thickness - trrs_jack_config.horizontal_tolerance, 0)
-            )
-
-            trrs_jack_lr = LocationOrientation(
-                x=trrs_jack.x,
-                y=trrs_jack.y,
-                z=trrs_jack.z - case_config.case_base_height + case_config.case_thickness,
-                rotate=trrs_jack.rotate,
-                rotate_around=trrs_jack.rotate_around,
-            )
-
-            standard_components.append(position(trrs_jack_holder, trrs_jack_lr))
 
         for component in result.separate_components:
             standard_components.append(component.render_in_place_func())
@@ -725,19 +674,37 @@ def get_y_at_x_intersection(obj, x, highest_y=True):
 
 
 def export_case_to_stl(result: RenderCaseResult):
-    cq.exporters.export(result.top, "keyboard_top.stl")
-    cq.exporters.export(result.bottom, "keyboard_bottom.stl")
-    if result.palm_rests:
-        if len(result.palm_rests) == 1:
-            cq.exporters.export(result.palm_rests[0], f"palm_rest.stl")
-        else:
-            for index, palm_rest in enumerate(result.palm_rests):
-                cq.exporters.export(palm_rest, f"palm_rest_{index}.stl")
+    _export_case(result, "stl")
 
 
 def export_case_to_step(result: RenderCaseResult):
-    cq.exporters.export(result.top, "keyboard_top.step")
-    cq.exporters.export(result.bottom, "keyboard_bottom.step")
+    _export_case(result, "step")
+
+
+def _export_case(result: RenderCaseResult, extension: str):
+    save_item(result.config, result.top, "keyboard_top", extension)
+    save_item(result.config, result.bottom, "keyboard_bottom", extension)
+
+    if result.palm_rests:
+        if len(result.palm_rests) == 1:
+            save_item(result.config, result.palm_rests[0], "palm_rest", extension)
+        else:
+            for index, palm_rest in enumerate(result.palm_rests):
+                save_item(result.config, palm_rest, f"palm_rest_{index}", extension)
+
+    if result.switch_holders:
+        # Flip around Y so it's in printing orientation
+        switch_holders_oriented = result.switch_holders.rotate((0, 0, 0), (0, 1, 0), 180)
+        save_item(result.config, switch_holders_oriented, "switch_holders", extension)
+
+
+def save_item(config: Config, item: cq.Workplane, file_name: str, extension: str):
+    if config.case_config.mirrored:
+        item = item.mirror(mirrorPlane="YZ")
+
+    suffix = "_mirrored" if config.case_config.mirrored else ""
+
+    cq.exporters.export(item, f"{file_name}{suffix}.{extension}")
 
 
 def move_top(top):

@@ -9,9 +9,11 @@ from .config import Config
 
 class RenderingPipelineStage(Enum):
     CASE_SOLID = 0
-    AFTER_SHELL_ADDITIONS = 1
-    BOTTOM_CUTS = 2
-    DEBUG = 3
+    TOP_CUTOUTS = 1
+    BOTTOM_AFTER_SHELL_ADDITIONS = 2
+    BOTTOM_CUTOUTS = 3
+    INNER_CLEARANCES = 4
+    DEBUG = 5
 
 
 @dataclass
@@ -22,21 +24,15 @@ class Renderable:
 
 @dataclass
 class RenderedItem:
-    shape: Any
+    shape: cq.Workplane
     pipeline_stage: RenderingPipelineStage
 
 
 @dataclass
 class SeparateComponentRender:
     name: str
-    render_func: Callable
-    render_in_place_func: Callable
-
-    def render_and_export_to_stl(self):
-        render = self.render_func()
-        cq.exporters.export(render, f"{self.name}.stl")
-
-        return render
+    render_func: Callable[[], cq.Workplane]
+    render_in_place_func: Callable[[], cq.Workplane]
 
 
 @dataclass

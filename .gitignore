@@ -3,3 +3,5 @@ __pycache__/
 .idea/
 .ipynb_checkpoints/
 *.ipynb
+
+/*.stl

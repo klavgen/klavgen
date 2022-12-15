@@ -219,7 +219,7 @@ config = Config()
 
 keys = [Key(x=0, y=0)]
 
-screw_holes = [
+components = [
     ScrewHole(x=13, y=13),
     ScrewHole(x=13, y=-13),
     ScrewHole(x=-13, y=-13),
@@ -233,7 +233,7 @@ palm_rests = [
     ),
 ]
 
-case_result = render_case(keys=keys, palm_rests=palm_rests, screw_holes=screw_holes, config=config)
+case_result = render_case(keys=keys, components=components, palm_rests=palm_rests, config=config)
 ```
 
 This time, besides the `case_result.top` and `case_result.bottom` objects, you can also check out the
@@ -316,11 +316,10 @@ keys = [  # By columns from bottom left
     Key(x=19, y=19),
 ]
 
-controller = Controller(x=47.5, y=34)
-
-trrs_jack = TrrsJack(x=68, y=34)
-
-screw_holes = [  # Clockwise from top left
+components = [
+    Controller(x=47.5, y=34),
+    TRRSJack(x=68, y=34),
+    # Clockwise from top left
     ScrewHole(x=-11.4, y=30.4),
     ScrewHole(x=30.5, y=30.4),
     ScrewHole(x=78.4, y=30.4),
@@ -376,9 +375,7 @@ texts = [
 
 keyboard_result = render_and_save_keyboard(
     keys=keys,
-    screw_holes=screw_holes,
-    controller=controller,
-    trrs_jack=trrs_jack,
+    components=components,
     patches=patches,
     cuts=cuts,
     case_extras=case_extras,
@@ -437,7 +434,7 @@ above).
   product if you have palm rests (so they don't dig in your hands), but it's very prone to failure, see warning above.
 - `ScrewHoleConfig.screw_insert_hole_width` sets the size of the hole for screws and defaults to a value suitable for
   melting inserts. If you don't use inserts, you should lower the value.
-- `KeyConfig.case_tile_margin`, `ControllerConfig.case_tile_margin`, `TrrsJackConfig.case_tile_margin`, and
+- `KeyConfig.case_tile_margin`, `ControllerConfig.case_tile_margin`, `TTRRSJackConfig.case_tile_margin`, and
   `USBCJackConfig.case_tile_margin` is the size of the case generated around keys, controller holders, and TRRS/USBC
   jack holders. If you use `case_extras` or a `Patch` object to define your case outlines, you can freely lower these.
 - `MXSwitchHolderConfig.switch_hole_tolerance` and `ChocSwitchHolderConfig.switch_hole_tolerance` sets (in mm) how much

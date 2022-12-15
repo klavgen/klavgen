@@ -324,7 +324,7 @@ above).
   product if you have palm rests (so they don't dig in your hands), but it's very prone to failure, see warning above.
 - `ScrewHoleConfig.screw_insert_hole_width` sets the size of the hole for screws and defaults to a value suitable for
   melting inserts. If you don't use inserts, you should lower the value.
-- `KeyConfig.case_tile_margin`, `ControllerConfig.case_tile_margin`, `TrrsJackConfig.case_tile_margin`, and
+- `KeyConfig.case_tile_margin`, `ControllerConfig.case_tile_margin`, `TTRRSJackConfig.case_tile_margin`, and
   `USBCJackConfig.case_tile_margin` is the size of the case generated around keys, controller holders, and TRRS/USBC
   jack holders. If you use `case_extras` or a `Patch` object to define your case outlines, you can freely lower these.
 - `MXSwitchHolderConfig.switch_hole_tolerance` and `ChocSwitchHolderConfig.switch_hole_tolerance` sets (in mm) how much

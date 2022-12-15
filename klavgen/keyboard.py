@@ -1,36 +1,34 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
-from .classes import Controller, Cut, Key, PalmRest, Patch, ScrewHole, Text, TrrsJack
-from .config import Config
-from .renderer_case import RenderCaseResult, export_case_to_stl, render_case
-from .renderer_connector import export_connector_to_stl, render_connector
-from .renderer_controller import export_controller_holder_to_stl, render_controller_holder
-from .renderer_switch_holder import export_switch_holder_to_stl, render_switch_holder
-from .renderer_trrs_jack import export_trrs_jack_holder_to_stl, render_trrs_jack_holder
+import cadquery as cq
+
+from .classes import Cut, Key, PalmRest, Patch, RenderedSwitchHolder, Text
+from .config import Config, SwitchType
+from .renderer_case import RenderCaseResult, export_case_to_step, export_case_to_stl, render_case
+from .renderer_connector import export_connector_to_step, export_connector_to_stl, render_connector
+from .renderer_switch_holder import (
+    export_switch_holder_to_step,
+    export_switch_holder_to_stl,
+    render_switch_holder,
+)
 from .rendering import Renderable
 
 
 @dataclass
 class RenderKeyboardResult:
     case_result: RenderCaseResult
-    top: Any
-    bottom: Any
-    switch_holder: Optional[Any] = None
-    connector: Optional[Any] = None
-    controller_holder: Optional[Any] = None
-    trrs_jack_holder: Optional[Any] = None
-    separate_components: Optional[Dict[str, Any]] = None
-    palm_rests: Optional[List[Any]] = None
+    top: cq.Workplane
+    bottom: cq.Workplane
+    switch_holder: Optional[cq.Workplane]
+    connector: Optional[cq.Workplane]
+    separate_components: Dict[str, cq.Workplane]
 
 
 def render_and_save_keyboard(
     keys: List[Key],
-    screw_holes: Optional[List[ScrewHole]] = None,
-    controller: Optional[Controller] = None,
-    trrs_jack: Optional[TrrsJack] = None,
     components: Optional[List[Renderable]] = None,
-    case_extras: Optional[List[Any]] = None,
+    case_extras: Optional[List[cq.Workplane]] = None,
     patches: Optional[List[Patch]] = None,
     cuts: Optional[List[Cut]] = None,
     palm_rests: Optional[List[PalmRest]] = None,
@@ -44,9 +42,6 @@ def render_and_save_keyboard(
     The core method that renders and saves as STL files all keyboard components.
 
     :param keys: A list of Key objects defining the key positions. Required.
-    :param screw_holes: A list of ScrewHole objects defining the screw hole positions. Optional.
-    :param controller: A Controller object defining where the controller back center is. Optional.
-    :param trrs_jack: A TrrsJack object defining where the TRRS jack back center is. Optional.
     :param components: A list of components to add to the keyboard
     :param patches: A list of Patch objects that add volume to the case. Optional.
     :param cuts: A list of Cut objects that remove volume from the case. Optional.
@@ -68,9 +63,6 @@ def render_and_save_keyboard(
 
     case_result = render_case(
         keys=keys,
-        screw_holes=screw_holes,
-        controller=controller,
-        trrs_jack=trrs_jack,
         components=components,
         patches=patches,
         cuts=cuts,
@@ -82,47 +74,88 @@ def render_and_save_keyboard(
         result=result,
         config=config,
     )
-    export_case_to_stl(case_result)
 
-    switch_holder = None
-    if config.case_config.use_switch_holders:
+    return export_keyboard_to_stl(case_result)
+
+
+@dataclass
+class KeyboardComponents:
+    switch_holder_result: Optional[RenderedSwitchHolder]
+    connector: Optional[cq.Workplane]
+    components: Dict[str, cq.Workplane]
+
+
+def _render_keyboard_separate_components(case_result: RenderCaseResult) -> KeyboardComponents:
+    config = case_result.config
+
+    switch_holder_result = None
+    if config.case_config.use_switch_holders and config.case_config.switch_type == SwitchType.MX:
         switch_holder_result = render_switch_holder(config)
-        export_switch_holder_to_stl(switch_holder_result)
-        switch_holder = switch_holder_result.switch_holder
 
-    controller_holder = None
-    if controller:
-        controller_holder = render_controller_holder(config)
-        export_controller_holder_to_stl(controller_holder)
-
-    trrs_jack_holder = None
-    if trrs_jack:
-        trrs_jack_holder = render_trrs_jack_holder(config.trrs_jack_config)
-        export_trrs_jack_holder_to_stl(trrs_jack_holder)
-
-    palm_rests = None
     connector = None
     if case_result.palm_rests:
         connector = render_connector(config)
-        palm_rests = case_result.palm_rests
 
-        export_connector_to_stl(connector)
-
-    rendered_components = None
+    rendered_components = {}
     if case_result.separate_components:
-        rendered_components = {}
         for separate_component in case_result.separate_components:
-            rendered_component = separate_component.render_and_export_to_stl()
+            rendered_component = separate_component.render_func()
             rendered_components[separate_component.name] = rendered_component
+
+    return KeyboardComponents(
+        switch_holder_result=switch_holder_result,
+        connector=connector,
+        components=rendered_components,
+    )
+
+
+def export_keyboard_to_stl(case_result: RenderCaseResult) -> RenderKeyboardResult:
+    components = _render_keyboard_separate_components(case_result)
+
+    export_case_to_stl(case_result)
+
+    switch_holder = None
+    if components.switch_holder_result:
+        switch_holder = components.switch_holder_result.switch_holder
+        export_switch_holder_to_stl(components.switch_holder_result)
+
+    if components.connector:
+        export_connector_to_stl(components.connector)
+
+    for name, result in components.components.items():
+        cq.exporters.export(result, f"{name}.stl")
 
     return RenderKeyboardResult(
         case_result=case_result,
         top=case_result.top,
         bottom=case_result.bottom,
         switch_holder=switch_holder,
-        connector=connector,
-        controller_holder=controller_holder,
-        trrs_jack_holder=trrs_jack_holder,
-        separate_components=rendered_components,
-        palm_rests=palm_rests,
+        connector=components.connector,
+        separate_components=components.components,
+    )
+
+
+def export_keyboard_to_step(case_result: RenderCaseResult) -> RenderKeyboardResult:
+    components = _render_keyboard_separate_components(case_result)
+
+    export_case_to_step(case_result)
+
+    switch_holder = None
+    if components.switch_holder_result:
+        switch_holder = components.switch_holder_result.switch_holder
+        export_switch_holder_to_step(components.switch_holder_result)
+
+    if components.connector:
+        export_connector_to_step(components.connector)
+
+    for name, result in components.components.items():
+        cq.exporters.export(result, f"{name}.step")
+
+    return RenderKeyboardResult(
+        case_result=case_result,
+        top=case_result.top,
+        bottom=case_result.bottom,
+        switch_holder=switch_holder,
+        connector=components.connector,
+        separate_components=components.components,
     )

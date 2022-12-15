@@ -1,7 +1,7 @@
 import cadquery as cq
 
 from .classes import LocationOrientation, USBCJack
-from .config import Config, SideHolderConfig, USBCJackConfig
+from .config import Config
 from .renderer_side_holder import render_side_case_hole_rail, render_side_mount_bracket
 from .rendering import (
     RENDERERS,
@@ -17,12 +17,14 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
     result = render_side_case_hole_rail(usbc_jack, config.usbc_jack_config, config.case_config)
 
     def render_in_place():
-        usbc_jack_holder = render_usbc_jack_holder(config, orient_for_printing=False)
+        usbc_jack_holder = render_usbc_jack_holder(config)
 
         usbc_jack_lr = LocationOrientation(
             x=usbc_jack.x,
             y=usbc_jack.y,
-            z=usbc_jack.z - config.case_config.case_base_height + config.case_config.case_thickness,
+            z=usbc_jack.z
+            - config.case_config.case_base_height
+            + config.case_config.case_bottom_wall_height,
             rotate=usbc_jack.rotate,
             rotate_around=usbc_jack.rotate_around,
         )
@@ -33,14 +35,19 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
         name=usbc_jack.name or "usbc_jack",
         items=[
             RenderedItem(result.case_column, pipeline_stage=RenderingPipelineStage.CASE_SOLID),
-            RenderedItem(result.rail, pipeline_stage=RenderingPipelineStage.AFTER_SHELL_ADDITIONS),
-            RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTS),
+            RenderedItem(
+                result.rail, pipeline_stage=RenderingPipelineStage.BOTTOM_AFTER_SHELL_ADDITIONS
+            ),
+            RenderedItem(result.hole, pipeline_stage=RenderingPipelineStage.BOTTOM_CUTOUTS),
+            RenderedItem(
+                result.inner_clearance, pipeline_stage=RenderingPipelineStage.INNER_CLEARANCES
+            ),
             RenderedItem(result.debug, pipeline_stage=RenderingPipelineStage.DEBUG),
         ],
         separate_components=[
             SeparateComponentRender(
                 name="usbc_jack_holder",
-                render_func=lambda: render_usbc_jack_holder(config, orient_for_printing=True),
+                render_func=lambda: render_usbc_jack_holder(config),
                 render_in_place_func=render_in_place,
             )
         ],
@@ -50,10 +57,15 @@ def render_usbc_jack(usbc_jack: USBCJack, config: Config) -> RenderResult:
 RENDERERS.set_renderer("usbc_jack", render_usbc_jack)
 
 
-def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True):
+def render_usbc_jack_holder(config: Config = Config()):
     usbc_jack_config = config.usbc_jack_config
 
+    # Jack is oriented with the bracket on front. Y=0 is the point after the bracket, so bracket + case wall are in
+    # negative Y. This is how render_side_mount_bracket() renders the bracket
     wp = cq.Workplane("XY")
+
+    case_config = config.case_config
+    holder_height = case_config.case_inner_height - usbc_jack_config.vertical_tolerance
 
     # Mount bracket
     holder = render_side_mount_bracket(
@@ -61,24 +73,28 @@ def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True)
     )
 
     # Holder
-    case_config = config.case_config
     back_wrapper = wp.center(0, usbc_jack_config.holder_bracket_depth).box(
         usbc_jack_config.base_width,
-        usbc_jack_config.item_depth,
-        case_config.case_inner_height - usbc_jack_config.vertical_tolerance,
+        usbc_jack_config.holder_depth_behind_bracket,
+        holder_height,
         centered=grow_yz,
     )
     holder = holder.union(back_wrapper)
 
-    # USBC jack
-    offset_y = -case_config.case_thickness - config.usbc_jack_config.horizontal_tolerance
+    # USBC jack hole
 
-    jack_wp = wp.workplane(offset=usbc_jack_config.base_height).center(0, offset_y)
+    # Offset in negative Y to get to the start of the wall since we want the jack hole to go through the holder which
+    # fills the wall hole
+    offset_y = -case_config.case_side_wall_thickness - config.usbc_jack_config.horizontal_tolerance
+
+    vertical_support_height = (holder_height - usbc_jack_config.jack_height) / 2
+
+    jack_wp = wp.workplane(offset=vertical_support_height).center(0, offset_y)
     jack_depth = (
-        case_config.case_thickness
+        case_config.case_side_wall_thickness
         + config.usbc_jack_config.horizontal_tolerance
         + usbc_jack_config.holder_bracket_depth
-        + usbc_jack_config.item_depth
+        + usbc_jack_config.holder_depth_behind_bracket
     )
 
     jack_center = jack_wp.box(
@@ -109,7 +125,7 @@ def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True)
             (
                 0,
                 usbc_jack_config.holder_bracket_depth + usbc_jack_config.item_depth,
-                usbc_jack_config.base_height + usbc_jack_config.jack_height / 2,
+                vertical_support_height + usbc_jack_config.jack_height / 2,
             )
         )
     ).chamfer(0.5)
@@ -119,10 +135,6 @@ def render_usbc_jack_holder(config: Config = Config(), orient_for_printing=True)
 
     # Move forward because part that aligns with case wall is now in positive Y
     holder = holder.translate((0, offset_y, 0))
-
-    if orient_for_printing:
-        # No need to orient
-        pass
 
     return holder
 

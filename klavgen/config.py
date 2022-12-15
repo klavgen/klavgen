@@ -2,6 +2,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from .constants import (
+    CHOC_KEYCAP_1U_DEPTH,
+    CHOC_KEYCAP_1U_WIDTH,
+    MX_KEYCAP_1U_DEPTH,
+    MX_KEYCAP_1U_WIDTH,
+)
+
 
 class SwitchType(Enum):
     MX = 0
@@ -13,7 +20,7 @@ class MXKeyConfig:
     # Switch hole
     switch_width: float = 14
     switch_depth: float = 14
-    switch_hole_tolerance: float = 0.05
+    switch_hole_tolerance: float = 0  # 0.05
 
     # Orientation
     north_facing: float = False
@@ -23,13 +30,13 @@ class MXKeyConfig:
     case_tile_margin: float = 8
 
     # Keycap
-    keycap_width: float = 18
-    keycap_depth: float = 18
+    keycap_width: float = MX_KEYCAP_1U_WIDTH
+    keycap_depth: float = MX_KEYCAP_1U_DEPTH
     clearance_margin: float = 1
 
     # Need enough space for the socket holder lips
-    switch_rim_width: float = 19
-    switch_rim_depth: float = 19
+    switch_rim_width: float = MX_KEYCAP_1U_WIDTH + 1
+    switch_rim_depth: float = MX_KEYCAP_1U_DEPTH + 1
 
     def __post_init__(self):
         self.switch_hole_width: float = self.switch_width - self.switch_hole_tolerance
@@ -50,12 +57,16 @@ class ChocKeyConfig(MXKeyConfig):
     switch_width: float = 13.8
     switch_depth: float = 13.8
 
-    # Keycap
-    keycap_width: float = 17.5
-    keycap_depth: float = 16.5
-
     # Case tile
     case_tile_margin: float = 8.1  # Bump up to produce same outlines as MX
+
+    # Keycap
+    keycap_width: float = CHOC_KEYCAP_1U_WIDTH
+    keycap_depth: float = CHOC_KEYCAP_1U_DEPTH
+
+    # Need enough space for the socket holder lips
+    switch_rim_width: float = CHOC_KEYCAP_1U_WIDTH + 1
+    switch_rim_depth: float = CHOC_KEYCAP_1U_DEPTH + 1
 
 
 @dataclass
@@ -63,14 +74,23 @@ class CaseConfig:
     switch_type: SwitchType = SwitchType.MX
     use_switch_holders: bool = True
 
-    case_thickness: float = 2  # 2.4
+    case_side_wall_thickness: float = 1.4  # 2.4
+    case_bottom_wall_height: float = 0.9
+    case_top_wall_height: float = 1.8
 
     # Total height, including top and bottom thickness
-    # MX: 11 = 5 switch holder (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
+    # MX: 11 = 5 switch (incl top thickness of 2) + 0.2 buffer + 1 socket bumps + 1.8 socket + 1 socket base +
     #   2 bottom thickness
-    # Choc: 9 = 2.4 switch holder/top thickness (incl buffer of 0.2) + 4.2 usbc socket (disregard 1.2 socket bumps + 1.8 socket) +
-    #   + 2.4 bottom thickness
-    case_base_height: float = 11  # 9
+    # Choc: 8.4 = the max of:
+    #   - Switch: 7.8 = 2.2 switch (incl top thickness of 2) + 0.6 buffer + 1.2 socket bumps + 1.8 socket
+    #                   + 2 bottom thickness
+    #   - USB holder: 9 = 2 top thickness + 4.8 usbc socket (3.6 hole + 1.2 on top & bottom) + 2 bottom thickness
+    #                     + 0.2 tolerance
+    #   - Pro Micro holder: 9 = 2 top thickness + 5 PCB + 2 bottom thickness + 0.2 tolerance
+    #   - After Elite-C: 7.4 = 2 top thickness + 3.4 PCB + 2 bottom thickness
+
+    # tallest_internal_component_height: float = 5.0
+    case_inner_height: float = 5.1
 
     # Global clearance height
     clearance_height: float = 100
@@ -82,8 +102,17 @@ class CaseConfig:
 
     detachable_palm_rests: bool = True
 
+    inner_volume_clearance: float = 0.4
+
+    mirrored: bool = False
+
     def __post_init__(self):
-        self.case_inner_height = self.case_base_height - 2 * self.case_thickness
+        self.case_base_height: float = (
+            self.case_bottom_wall_height + self.case_inner_height + self.case_top_wall_height
+        )
+        # self.case_inner_height = (
+        #     self.case_base_height - self.case_bottom_wall_height - self.case_top_wall_height
+        # )
 
 
 @dataclass
@@ -219,15 +248,15 @@ class KailhChocSocketConfig(SocketConfig):
 
     socket_height: float = 1.8
 
-    pins_inset_depth: float = 1
-    solder_pin_width: float = 1.9
+    pins_inset_depth: float = 1.3
+    solder_pin_width: float = 1.8
     pin_top_clearance_height: float = 0.4
 
     bump_x_distance: float = 5
     bump_y_distance: float = -2.2
 
     socket_bump_radius: float = 1.6
-    socket_bump_height: float = 1.25
+    socket_bump_height: float = 1.2  # 1.25 in reality
 
     socket_bump_1_x: float = 2.4
 
@@ -267,6 +296,7 @@ class KailhChocSocketConfig(SocketConfig):
         self.socket_front_end_y: float = (
             self.socket_center_y_offset  # start Y is just the offset, since we start sketching from Y = 0
         )
+        self.socket_back_end_y: float = self.socket_front_end_y + self.socket_total_depth
 
         self.socket_locking_lip_start_y: float = self.right_depth + self.socket_center_y_offset
         self.socket_locking_lip_start_x: float = (
@@ -367,11 +397,15 @@ class MXSwitchHolderConfig:
     #
 
     switch_center_pin_y: float = 0
-    switch_center_pin_radius: float = 2.2
+    switch_center_pin_radius: float = (
+        2.2  # Cherry MX pin has a diameter of 4 (in reality it seems a little less)
+    )
 
     switch_side_pin_distance: float = 5
     switch_side_pin_y: float = 0
-    switch_side_pin_radius: float = 1.1
+    switch_side_pin_radius: float = (
+        1.05  # Cherry MX pin has a diameter of 1.7 (in reality it seems a little less)
+    )
 
     #
     # Back wrapping posts and col/row separator
@@ -462,7 +496,7 @@ class MXSwitchHolderConfig:
             self.holder_bottom_height
             + self.switch_bottom_buffer_height
             + self.switch_bottom_height
-            - self.case_config.case_thickness
+            - self.case_config.case_top_wall_height
         )
 
         self.holder_height_to_socket_pin_top: float = (
@@ -475,7 +509,9 @@ class MXSwitchHolderConfig:
             self.cutoff_y - self.back_wrappers_and_separator_depth
         )
 
-        self.switch_hole_min_height: float = self.holder_height + self.case_config.case_thickness
+        self.switch_hole_min_height: float = (
+            self.holder_height + self.case_config.case_top_wall_height
+        )
 
         self.plate_front_hole_start_y: float = (
             -self.key_config.switch_hole_depth / 2 - self.plate_front_hole_depth
@@ -507,7 +543,7 @@ class MXSwitchHolderConfig:
 
         self.holder_total_height: float = (
             self.holder_height
-            + self.case_config.case_thickness
+            + self.case_config.case_top_wall_height
             - self.holder_lips_start_below_case_top
             + self.holder_side_lips_width
             + self.holder_side_lips_top_lip_height
@@ -562,11 +598,13 @@ class ChocSwitchHolderConfig(MXSwitchHolderConfig):
     #
 
     switch_center_pin_y: float = 0
-    switch_center_pin_radius: float = 2.7
+    switch_center_pin_radius: float = 1.9  # 2.65  # V1 pin has a diameter of 3.2 (); V2 pin has a diameter of 4.8 (in reality it seems a little more)
 
     switch_side_pin_distance: float = 5.5
     switch_side_pin_y: float = 0
-    switch_side_pin_radius: float = 1.1
+    switch_side_pin_radius: float = (
+        1.1  # V1 has pins with diameter 1.8 (in reality is quite a bit less, ~1.6)
+    )
 
     #
     # Front wire holes
@@ -609,6 +647,9 @@ class ChocSwitchHolderConfig(MXSwitchHolderConfig):
     back_side_cut_left_width: float = 0.5
     back_side_cut_right_width: float = 1.5
 
+    plate_side_hole_width: float = 1.1
+    holder_side_bottom_wall_width: float = 1
+
     def reset_dependencies(
         self,
         case_config: CaseConfig,
@@ -632,8 +673,6 @@ class SideHolderConfig:
 
     holder_bracket_depth: float = 1.4
     holder_bracket_width: float = 2
-
-    holder_hole_width: float = 5.3
 
     side_supports_width: float = 1
 
@@ -662,13 +701,16 @@ class SideHolderConfig:
 class ControllerConfig(SideHolderConfig):
     item_width: float = 18.2
 
-    item_depth: float = 33.4  # 35.2 usbc / 33.4 microusb
+    item_depth: float = 35.2  # Pro Micro: 35.2 usbc / 33.4 microusb
     back_support_depth: float = 1.4
 
     case_hole_width: float = 18
 
+    # PCB
+    controller_height: float = 5.0
+
     # Base
-    base_height: float = 1.0
+    # base_height: float = 1.0
     base_center_width: float = 8
     base_side_width: float = 0.5
     base_front_depth: float = 2
@@ -683,11 +725,11 @@ class ControllerConfig(SideHolderConfig):
 
     # USB port hole
     usb_port_hole_start_height_from_pcb_bottom: float = 1.2
-    usb_port_hole_width: float = 9.0  # 10.0 usbc / 9.0 microusb
+    usb_port_hole_width: float = 10.0  # Pro Micro: 10.0 usbc / 9.0 microusb
 
 
 @dataclass
-class TrrsJackConfig(SideHolderConfig):
+class TRRSJackConfig(SideHolderConfig):
     item_width: float = 6
 
     item_depth: float = 12
@@ -695,6 +737,7 @@ class TrrsJackConfig(SideHolderConfig):
 
     case_hole_width: float = 10
 
+    holder_hole_width: float = 5.3
     holder_height: float = 7
 
     holder_right_bracket_depth: float = 9.5
@@ -711,16 +754,17 @@ class TrrsJackConfig(SideHolderConfig):
 @dataclass
 class USBCJackConfig(SideHolderConfig):
     item_width: float = 9.2
-    item_depth: float = 2.9
+    item_depth: float = 15.0  # 2.9
 
     side_supports_width: float = 1.5
     back_support_depth: float = 0
 
     case_hole_width: float = 11
 
-    base_height: float = 1.8
+    # base_height: float = 1.8
 
     jack_height: float = 3.6
+    holder_depth_behind_bracket: float = 2.9
 
 
 @dataclass
@@ -757,7 +801,7 @@ class Config:
 
     controller_config: ControllerConfig = ControllerConfig()
 
-    trrs_jack_config: TrrsJackConfig = TrrsJackConfig()
+    trrs_jack_config: TRRSJackConfig = TRRSJackConfig()
     usbc_jack_config: USBCJackConfig = USBCJackConfig()
 
     connector_config: ConnectorConfig = ConnectorConfig()

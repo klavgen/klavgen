@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
+
+import cadquery as cq
 
 from .rendering import Renderable
 
@@ -17,37 +19,46 @@ class LocationOrientation:
 class Key(LocationOrientation):
     keycap_width: Optional[float] = None
     keycap_depth: Optional[float] = None
+    case_tile_margin_back: Optional[float] = None
+    case_tile_margin_right: Optional[float] = None
+    case_tile_margin_front: Optional[float] = None
+    case_tile_margin_left: Optional[float] = None
 
 
 @dataclass
 class RenderedKey:
-    case_column: Any
-    case_clearance: Any
-    switch_rim: Any
-    keycap_clearance: Any
-    switch_hole: Any
-    debug: Any
+    case_column: cq.Workplane
+    case_clearance: cq.Workplane
+    switch_rim: cq.Workplane
+    keycap_clearance: cq.Workplane
+    switch_hole: cq.Workplane
+    fused_switch_holder: cq.Workplane
+    fused_switch_holder_clearance: cq.Workplane
+    debug: cq.Workplane
 
 
 @dataclass
 class RenderedKeyTemplates:
-    switch_hole: Any
-    case_clearance: Any
-    keycap_clearance: Any
+    switch_hole: cq.Workplane
+    case_clearance: cq.Workplane
+    keycap_clearance: cq.Workplane
+    fused_switch_holder: cq.Workplane
+    fused_switch_holder_clearance: cq.Workplane
 
 
 @dataclass
-class ScrewHole:
-    x: float
-    y: float
-    z: float = 0
+class ScrewHole(Renderable, LocationOrientation):
+    name = "screw_hole"
+    render_func_name: str = "screw_hole"
 
 
 @dataclass
 class RenderedScrewHole:
-    rim: Any
-    hole: Any
-    debug: Any
+    rim: cq.Workplane
+    rim_bottom: cq.Workplane
+    rim_inner_clearance: cq.Workplane
+    hole: cq.Workplane
+    debug: cq.Workplane
 
 
 @dataclass
@@ -71,20 +82,23 @@ class Text(LocationOrientation):
 
 @dataclass
 class RenderedSideHolder:
-    case_column: Any
-    rail: Any
-    hole: Any
-    debug: Any
+    case_column: cq.Workplane
+    rail: cq.Workplane
+    inner_clearance: cq.Workplane
+    hole: cq.Workplane
+    debug: cq.Workplane
 
 
 @dataclass
-class Controller(LocationOrientation):
-    pass
+class Controller(Renderable, LocationOrientation):
+    name = "controller"
+    render_func_name: str = "controller"
 
 
 @dataclass
-class TrrsJack(LocationOrientation):
-    pass
+class TRRSJack(Renderable, LocationOrientation):
+    name = "trrs_jack"
+    render_func_name: str = "trrs_jack"
 
 
 @dataclass
@@ -102,5 +116,6 @@ class PalmRest:
 
 @dataclass
 class RenderedSwitchHolder:
-    switch_holder: Any
-    socket: Any
+    switch_holder: cq.Workplane
+    switch_holder_clearance: Optional[cq.Workplane]
+    socket: cq.Workplane

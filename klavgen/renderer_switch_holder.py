@@ -6,22 +6,22 @@ from .classes import RenderedSwitchHolder
 from .config import CaseConfig, Config, MXSwitchHolderConfig, SwitchType
 from .renderer_kailh_choc_socket import draw_choc_socket
 from .renderer_kailh_mx_socket import draw_mx_socket
+from .renderer_switch_holder_choc import render_switch_holder_choc
 from .utils import grow_yz, grow_z, union_list
 
 
 def render_switch_hole(case_config: CaseConfig, config: MXSwitchHolderConfig):
-    wp = cq.Workplane("XY").workplane(
-        offset=-case_config.case_base_height + case_config.case_thickness
-    )
+    wp = cq.Workplane("XY").workplane(offset=-config.switch_hole_min_height)
 
     switch_hole = wp.box(
         config.key_config.switch_hole_width,
         config.key_config.switch_hole_depth,
+        # TODO: fix this for when we are not using holders
         config.switch_hole_min_height,
         centered=grow_z,
     )
 
-    if case_config.use_switch_holders:
+    if case_config.use_switch_holders and case_config.switch_type == SwitchType.MX:
         side_hole_left = wp.center(
             -config.key_config.switch_hole_width / 2 - config.plate_side_hole_width,
             -config.key_config.switch_hole_depth / 2,
@@ -70,7 +70,7 @@ def render_switch_holder(
     if config.case_config.switch_type == SwitchType.MX:
         return render_mx_switch_holder(config, orient_for_printing)
     else:
-        return render_choc_switch_holder(config, orient_for_printing)
+        return render_choc_switch_holder(config)
 
 
 def render_mx_switch_holder(
@@ -85,16 +85,10 @@ def render_mx_switch_holder(
     )
 
 
-def render_choc_switch_holder(
-    config: Config = Config(), orient_for_printing=True
-) -> RenderedSwitchHolder:
+def render_choc_switch_holder(config: Config = Config()) -> RenderedSwitchHolder:
     wp = cq.Workplane("XY")
     socket = draw_choc_socket(wp, config)
-    return _render_switch_holder(
-        socket=socket,
-        cf=config.switch_holder_choc_config,
-        orient_for_printing=orient_for_printing,
-    )
+    return render_switch_holder_choc(socket=socket, cf=config.switch_holder_choc_config)
 
 
 def _render_switch_holder(
@@ -165,7 +159,7 @@ def _render_switch_holder(
     holder = holder.cut(socket_sweep)
 
     # Bottom angled cutouts
-    bottom_angled_cutouts = draw_bottom_angled_cutouts(cf)
+    bottom_angled_cutouts = render_bottom_angled_cutouts(cf)
     holder = holder.cut(bottom_angled_cutouts)
 
     # Socket locking lip
@@ -242,7 +236,7 @@ def _render_switch_holder(
     holder = holder.cut(col_wire_front_wrapper_cutout_wide)
 
     # Top lips
-    top_lips = draw_top_lips(cf, case_config)
+    top_lips = render_top_lips(cf, case_config)
     holder = holder.union(top_lips)
 
     # Switch bottom hole
@@ -443,7 +437,7 @@ def _render_switch_holder(
         holder = switch_holder_orient_and_center(holder, cf)
         socket = switch_holder_orient_and_center(socket, cf)
 
-    return RenderedSwitchHolder(holder, socket)
+    return RenderedSwitchHolder(switch_holder=holder, switch_holder_clearance=None, socket=socket)
 
 
 def sweep_socket(socket, cf: MXSwitchHolderConfig):
@@ -461,12 +455,12 @@ def sweep_socket(socket, cf: MXSwitchHolderConfig):
 
     hole_1_wp = wp_xz.workplane(offset=-socket_cf.socket_bump_1_y_from_center)
 
-    hole_1_seep_until_y = (
+    hole_1_sweep_until_y = (
         cf.bottom_angled_cutout_right_socket_top_y
         if cf.reverse_diode_and_col_wire
         else cf.bottom_angled_cutout_left_socket_top_y
     )
-    hole_1_sweep_distance = hole_1_seep_until_y - socket_cf.socket_bump_1_y_from_center
+    hole_1_sweep_distance = hole_1_sweep_until_y - socket_cf.socket_bump_1_y_from_center
 
     hole_1_extrusion = (
         socket.copyWorkplane(socket_x_split_wp_left)
@@ -476,18 +470,18 @@ def sweep_socket(socket, cf: MXSwitchHolderConfig):
         .faces(">Y")
         .wires()
         .toPending()
-        .extrude(-hole_1_sweep_distance, combine=False)
+        .extrude(hole_1_sweep_distance, combine=False)
     )
     socket_swept = socket.union(hole_1_extrusion)
 
     hole_2_wp = wp_xz.workplane(offset=-socket_cf.socket_bump_2_y_from_center)
 
-    hole_2_seep_until_y = (
+    hole_2_sweep_until_y = (
         cf.bottom_angled_cutout_left_socket_top_y
         if cf.reverse_diode_and_col_wire
         else cf.bottom_angled_cutout_right_socket_top_y
     )
-    hole_2_sweep_distance = hole_2_seep_until_y - socket_cf.socket_bump_2_y_from_center
+    hole_2_sweep_distance = hole_2_sweep_until_y - socket_cf.socket_bump_2_y_from_center
 
     hole_2_extrusion = (
         socket.copyWorkplane(socket_x_split_wp_right)
@@ -497,14 +491,14 @@ def sweep_socket(socket, cf: MXSwitchHolderConfig):
         .faces(">Y")
         .wires()
         .toPending()
-        .extrude(-hole_2_sweep_distance, combine=False)
+        .extrude(hole_2_sweep_distance, combine=False)
     )
     socket_swept = socket_swept.union(hole_2_extrusion)
 
     return socket_swept
 
 
-def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
+def render_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
     socket_cf = cf.kailh_socket_config
 
     socket_bumps_midpoint_x = (
@@ -517,7 +511,7 @@ def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
     cutouts = []
 
     # Left, end
-    left_side_end_angled_cutout = draw_angled_side_cutout(
+    left_side_end_angled_cutout = render_angled_side_cutout(
         left_x=-cf.holder_width / 2,
         right_x=socket_cf.socket_left_end_x - socket_cf.solder_pin_width,
         front_y=end_pin_cutouts_start_y,
@@ -531,7 +525,7 @@ def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
         cutouts.append(left_side_end_angled_cutout)
 
     # Left, pin
-    left_side_pin_angled_cutout = draw_angled_side_cutout(
+    left_side_pin_angled_cutout = render_angled_side_cutout(
         left_x=socket_cf.socket_left_end_x - socket_cf.solder_pin_width,
         right_x=socket_cf.socket_left_end_x,
         front_y=end_pin_cutouts_start_y,
@@ -545,7 +539,7 @@ def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
         cutouts.append(left_side_pin_angled_cutout)
 
     # Left, socket
-    left_socket_pin_angled_cutout = draw_angled_side_cutout(
+    left_socket_pin_angled_cutout = render_angled_side_cutout(
         left_x=socket_cf.socket_left_end_x,
         right_x=socket_bumps_midpoint_x,
         front_y=socket_cutouts_start_y,
@@ -560,7 +554,7 @@ def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
         cutouts.append(left_socket_pin_angled_cutout)
 
     # Right, socket
-    right_socket_pin_angled_cutout = draw_angled_side_cutout(
+    right_socket_pin_angled_cutout = render_angled_side_cutout(
         left_x=socket_bumps_midpoint_x,
         right_x=socket_cf.socket_right_end_x,
         front_y=socket_cutouts_start_y,
@@ -575,7 +569,7 @@ def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
         cutouts.append(right_socket_pin_angled_cutout)
 
     # Right, pin
-    right_side_pin_angled_cutout = draw_angled_side_cutout(
+    right_side_pin_angled_cutout = render_angled_side_cutout(
         left_x=socket_cf.socket_right_end_x,
         right_x=socket_cf.socket_right_end_x + socket_cf.solder_pin_width,
         front_y=end_pin_cutouts_start_y,
@@ -589,7 +583,7 @@ def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
         cutouts.append(right_side_pin_angled_cutout)
 
     # Right, end
-    right_side_end_angled_cutout = draw_angled_side_cutout(
+    right_side_end_angled_cutout = render_angled_side_cutout(
         left_x=socket_cf.socket_right_end_x + socket_cf.solder_pin_width,
         right_x=cf.holder_width / 2,
         front_y=end_pin_cutouts_start_y,
@@ -605,7 +599,7 @@ def draw_bottom_angled_cutouts(cf: MXSwitchHolderConfig):
     return union_list(cutouts)
 
 
-def draw_angled_side_cutout(
+def render_angled_side_cutout(
     left_x: float,
     right_x: float,
     front_y: float,
@@ -642,10 +636,10 @@ def draw_angled_side_cutout(
     return angled_cutout
 
 
-def draw_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
+def render_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
     # Top side lips
 
-    holder_lips_base_height = case_config.case_thickness - cf.holder_lips_start_below_case_top
+    holder_lips_base_height = case_config.case_top_wall_height - cf.holder_lips_start_below_case_top
     holder_side_lips_total_height = (
         holder_lips_base_height + cf.holder_side_lips_width + cf.holder_side_lips_top_lip_height
     )
@@ -714,6 +708,90 @@ def draw_top_lips(cf: MXSwitchHolderConfig, case_config: CaseConfig):
     lips = lips.union(front_lip)
 
     return lips
+
+
+def render_col_wire_back_wrapper_additive(cf: MXSwitchHolderConfig, print_with_head_on_top):
+    wp = cq.Workplane("XY")
+    wp_yz = cq.Workplane("YZ")
+
+    head_depth = 2
+    neck_back_margin = 1.4
+    torso_height = 1
+    height = cf.holder_bottom_height
+
+    # head
+    wrapper = wp.center(0, -10).box(
+        cf.col_wire_wrapper_head_width, 10, cf.col_wire_wrapper_back_head_height, centered=False
+    )
+
+    # neck
+    neck = (
+        wp.center(cf.col_wire_wrapper_neck_inner_margin, -10)
+        .workplane(offset=cf.col_wire_wrapper_back_head_height)
+        .box(
+            cf.col_wire_wrapper_neck_width,
+            10 - neck_back_margin,
+            cf.col_wire_wrapper_back_neck_height,
+            centered=False,
+        )
+    )
+    wrapper = wrapper.union(neck)
+
+    # torso
+    torso = (
+        wp.center(0, -10)
+        .workplane(
+            offset=cf.col_wire_wrapper_back_head_height + cf.col_wire_wrapper_back_neck_height
+        )
+        .box(
+            cf.col_wire_wrapper_neck_inner_margin + cf.col_wire_wrapper_neck_width,
+            10,
+            torso_height,
+            centered=False,
+        )
+    )
+    wrapper = wrapper.union(torso)
+
+    # waist
+    waist = (
+        wp.center(0, -10)
+        .workplane(
+            offset=cf.col_wire_wrapper_back_head_height
+            + cf.col_wire_wrapper_back_neck_height
+            + torso_height
+        )
+        .box(
+            cf.col_wire_wrapper_head_width,
+            10 - neck_back_margin,
+            height
+            - cf.col_wire_wrapper_back_head_height
+            - cf.col_wire_wrapper_back_neck_height
+            - torso_height,
+            centered=False,
+        )
+    )
+    wrapper = wrapper.union(waist)
+
+    # side sloped cutout
+    cutout_back_y = -head_depth
+    cutout_front_y = cutout_back_y - cf.holder_bottom_height
+
+    sloped_cutout = (
+        wp_yz.moveTo(cutout_back_y, 0)
+        .lineTo(cutout_front_y, cf.holder_bottom_height)
+        .lineTo(cutout_front_y - 10, cf.holder_bottom_height)
+        .lineTo(cutout_front_y - 10, 0)
+        .close()
+        .extrude(10)
+    )
+
+    wrapper = wrapper.cut(sloped_cutout)
+
+    if print_with_head_on_top:
+        # Slope the head for printing
+        pass
+
+    return wrapper
 
 
 def render_col_wire_back_wrapper(cf: MXSwitchHolderConfig):
