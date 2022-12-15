@@ -78,6 +78,9 @@ def union_list(*objects: Union[cq.Workplane, List[cq.Workplane]]):
             else:
                 flat_objects.append(obj)
 
-        return functools.reduce(_cq_union_reductor, flat_objects)
+        if flat_objects:
+            return functools.reduce(_cq_union_reductor, flat_objects)
+        else:
+            return None
     else:
         return None
